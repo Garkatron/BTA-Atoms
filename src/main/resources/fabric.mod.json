@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "id": "templatemod",
+  "version": "${version}",
+
+  "name": "TemplateMod",
+  "description": "This mod aims to help new BTA modders.",
+  "authors": [
+    "Turnip Labs"
+  ],
+  "contact": {
+    "homepage": "",
+    "sources": ""
+  },
+
+	"icon": "icon.png",
+  "license": "CC0-1.0",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+			"deus.templatemod.Main"
+    ],
+		"beforeGameStart": [
+			"deus.templatemod.Main"
+		],
+		"deus": [
+			"deus.templatemod.Main"
+		],
+		"recipesReady": [
+			"deus.templatemod.entry_points.Sounds"
+		],
+		"initModels": [
+			"deus.templatemod.entry_points.Models"
+		]
+	},
+  "mixins": [
+      "templatemod.mixin.json"
+  ],
+
+  "depends": {
+		"minecraft": "*",
+    "fabricloader": ">=0.15.5"
+  },
+  "suggests": {
+  }
+}
