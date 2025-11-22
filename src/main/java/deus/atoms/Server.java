@@ -1,9 +1,9 @@
-package deus.templatemod;
+package deus.atoms;
 
 import net.fabricmc.api.DedicatedServerModInitializer;
 
-import static deus.templatemod.Main.LOGGER;
-import static deus.templatemod.Main.MOD_ID;
+import static deus.atoms.Main.LOGGER;
+import static deus.atoms.Main.MOD_ID;
 
 public class Server implements DedicatedServerModInitializer {
 	@Override

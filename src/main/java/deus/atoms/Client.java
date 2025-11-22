@@ -1,11 +1,11 @@
-package deus.templatemod;
+package deus.atoms;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.minecraft.client.sound.SoundRepository;
 import turniplabs.halplibe.util.ClientStartEntrypoint;
 
-import static deus.templatemod.Main.MOD_ID;
-import static deus.templatemod.Main.LOGGER;
+import static deus.atoms.Main.MOD_ID;
+import static deus.atoms.Main.LOGGER;
 
 public class Client  implements ClientStartEntrypoint, ClientModInitializer  {
 	@Override

@@ -1,12 +1,15 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "deus.templatemod.mixin",
+  "package": "deus.atoms.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
   ],
   "client": [
-    "IAEntityDispatcher"
+    "AtlasStitcherAccessor",
+    "CustomAtlasHandlerMixin",
+    "IAEntityDispatcher",
+    "TextureRegistryMixin"
   ],
   "injectors": {
     "defaultRequire": 1

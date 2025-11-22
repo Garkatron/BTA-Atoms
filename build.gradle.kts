@@ -129,7 +129,8 @@ dependencies {
     implementation("org.lwjgl:lwjgl-opengl:$lwjglVersion")
     implementation("org.lwjgl:lwjgl-stb:$lwjglVersion")
 
-	modImplementation ("org.reflections:reflections:0.10.2")
+	implementation("org.tomlj:tomlj:1.0.0")
+	include("org.tomlj:tomlj:1.0.0")
 
 }
 

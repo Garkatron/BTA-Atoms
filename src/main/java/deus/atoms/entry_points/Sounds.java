@@ -1,6 +1,6 @@
-package deus.templatemod.entry_points;
+package deus.atoms.entry_points;
 
-import deus.templatemod.Main;
+import deus.atoms.Main;
 import net.minecraft.core.sound.SoundTypes;
 
 

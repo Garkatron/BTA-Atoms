@@ -1,4 +1,4 @@
-package deus.templatemod.mixin;
+package deus.atoms.mixin;
 
 import net.minecraft.client.render.EntityRenderDispatcher;
 import net.minecraft.client.render.entity.EntityRenderer;

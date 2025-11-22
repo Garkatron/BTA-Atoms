@@ -1,7 +1,7 @@
-package deus.templatemod.mixin;
+package deus.atoms.mixin;
 
 
-import deus.templatemod.Main;
+import deus.atoms.Main;
 import net.minecraft.core.data.registry.recipe.RecipeEntryBase;
 import net.minecraft.core.data.registry.recipe.RecipeRegistry;
 import org.spongepowered.asm.mixin.Mixin;

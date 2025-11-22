@@ -1,4 +1,4 @@
-package deus.templatemod;
+package deus.atoms;
 
 import net.minecraft.core.block.Block;
 import net.minecraft.core.item.Item;
@@ -8,6 +8,7 @@ import turniplabs.halplibe.util.toml.Toml;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.List;
 
 public class ConfigManager {
 
@@ -19,6 +20,9 @@ public class ConfigManager {
 	public static void makeConfig(Class<?> items, Class<?> blocks) {
 		configBlockIDs(blocks, TOML);
 		configItemIDs(items, TOML);
+		CONFIG = new TomlConfigHandler(Main.MOD_ID, TOML);
+	}
+	public static void makeConfig() {
 		CONFIG = new TomlConfigHandler(Main.MOD_ID, TOML);
 	}
 
@@ -47,6 +51,18 @@ public class ConfigManager {
 			}
 		}
 	}
+
+	public static void configBlockIDsFromNames(List<String> names, Toml toml) {
+		for (String field : names) {
+			String key = "BLOCK_IDs." + field;
+			Main.LOGGER.info("Adding: {}", field);
+			Entry<?> id = toml.getEntry(key);
+			if (id == null) {
+				toml.addEntry(key, START_BLOCK_ID++);
+			}
+		}
+	}
+
 
 	public static int blockGoc(String blockFieldName) {
 		String key = "BLOCK_IDs." + blockFieldName;
