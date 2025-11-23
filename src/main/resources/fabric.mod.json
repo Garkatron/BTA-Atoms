@@ -24,6 +24,9 @@
 		"beforeGameStart": [
 			"deus.atoms.Main"
 		],
+		"afterGameStart": [
+			"deus.atoms.Main"
+		],
 		"recipesReady": [
 			"deus.atoms.entry_points.Recipes"
 		],

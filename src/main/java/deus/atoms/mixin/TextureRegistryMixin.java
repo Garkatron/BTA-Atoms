@@ -1,11 +1,13 @@
 package deus.atoms.mixin;
 
-
 import deus.atoms.Main;
+import deus.atoms.mixin.AtlasStitcherAccessor;
 import net.minecraft.client.render.texture.stitcher.AtlasStitcher;
 import net.minecraft.client.render.texture.stitcher.IconCoordinate;
 import net.minecraft.client.render.texture.stitcher.TextureRegistry;
 import net.minecraft.core.util.collection.NamespaceID;
+import org.slf4j.Logger;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -14,47 +16,26 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.HashMap;
 
-@Mixin(net.minecraft.client.render.texture.stitcher.TextureRegistry.class)
-public class TextureRegistryMixin  {
+@Mixin(TextureRegistry.class)
+public class TextureRegistryMixin {
 
-	@Shadow
+	@Shadow(remap = false)
 	public static HashMap<String, AtlasStitcher> stitcherMap;
 
+	@Shadow(remap = false)
+	@Final
+	private static Logger LOGGER;
 
-	@Inject(method = "getTexture(Lnet/minecraft/core/util/collection/NamespaceID;)Lnet/minecraft/client/render/texture/stitcher/IconCoordinate;", at = @At("RETURN"), remap = false, cancellable = true)
-	private static void test(NamespaceID id, CallbackInfoReturnable<IconCoordinate> cir) {
-
-		//System.out.println("DADADA: "+id.value);
-
-
-		String str = id.value().substring(1);
-		String[] split2 = str.split("/");
-		AtlasStitcher atlas = stitcherMap.get(split2[0]);
-
-		if (id.value().startsWith("$")) {
-
-			System.out.println("[GET TEXTURE]: $");
-			IconCoordinate result = ((AtlasStitcherAccessor) atlas).callGetTexture(NamespaceID.getTemp(Main.MOD_ID, str.replace("¿",":")));
-
-			cir.setReturnValue(result);
-		} else if (id.value().startsWith("&")) {
-
-			System.out.println("[GET TEXTURE]: &");
-
-			IconCoordinate result = ((AtlasStitcherAccessor) atlas).callGetTexture(NamespaceID.getTemp(Main.MOD_ID, str));
-			cir.setReturnValue(result);
+	@Inject(
+		method = "getTexture(Lnet/minecraft/core/util/collection/NamespaceID;)Lnet/minecraft/client/render/texture/stitcher/IconCoordinate;",
+		at = @At("RETURN"),
+		remap = false,
+		cancellable = true
+	)
+	private static void injectCustomTexture(NamespaceID id, CallbackInfoReturnable<IconCoordinate> cir) {
+		if (id.namespace().contains("atoms")) {
 
 		}
 
-
 	}
-
-	/*
-	@Inject(method = "hasTexture(Lnet/minecraft/core/util/collection/NamespaceID;)Z", at=@At("HEAD"), remap = false, cancellable = true)
-	private static void test2(NamespaceID id, CallbackInfoReturnable<Boolean> cir) {
-
-	}
-	*/
-
-
 }

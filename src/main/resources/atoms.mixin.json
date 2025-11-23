@@ -4,6 +4,9 @@
   "package": "deus.atoms.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "AtlasStitcherMixin",
+    "I18nAccessor",
+    "LanguageAccessor"
   ],
   "client": [
     "AtlasStitcherAccessor",
