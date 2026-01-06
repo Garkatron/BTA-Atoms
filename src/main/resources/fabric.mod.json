@@ -6,11 +6,11 @@
   "name": "Atoms",
   "description": "This mod aims to help map-makers.",
   "authors": [
-    "Turnip Labs"
+    "@Garkatron"
   ],
   "contact": {
     "homepage": "",
-    "sources": ""
+    "sources": "https://github.com/Garkatronics-MC/BTA-Atoms"
   },
 
 	"icon": "icon.png",
