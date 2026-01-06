@@ -136,7 +136,7 @@ public class AtomCompiler {
 			langkey,
 			atom_name,
 			blockGoc(key),
-			b -> new AtomBlockLogic(b, materialObject, is_cube_shaped, is_collidable, is_solid_render)
+			b -> new AtomBlockLogic(b, materialObject, is_cube_shaped, is_collidable, is_solid_render, drops_array)
 		));
 	}
 
