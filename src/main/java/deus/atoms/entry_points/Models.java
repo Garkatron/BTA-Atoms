@@ -1,5 +1,6 @@
 package deus.atoms.entry_points;
 
+import deus.atoms.AtomCompiler;
 import deus.atoms.AtomDataCache;
 import deus.atoms.Main;
 import net.minecraft.client.render.EntityRenderDispatcher;
@@ -12,6 +13,7 @@ import net.minecraft.core.block.Block;
 import net.minecraft.core.util.helper.Side;
 import org.tomlj.TomlArray;
 import org.tomlj.TomlParseResult;
+import org.tomlj.TomlTable;
 import turniplabs.halplibe.helper.ModelHelper;
 import turniplabs.halplibe.util.ModelEntrypoint;
 
@@ -32,7 +34,7 @@ public class Models implements ModelEntrypoint {
 
 			Optional<TomlParseResult> atomOpt = atoms.stream()
 				.filter(a -> {
-					String name = a.getString("name");
+					String name = a.getString("data.name");
 					return name != null && block.namespaceId().toString().contains(name);
 				})
 				.findFirst();
@@ -40,33 +42,27 @@ public class Models implements ModelEntrypoint {
 			if (!atomOpt.isPresent()) continue;
 
 			TomlParseResult atom = atomOpt.get();
-			TomlArray texturesArray = atom.getArray("textures");
+			TomlTable texturesTable = atom.getTable("textures.faces");
 
-			if (texturesArray == null || texturesArray.isEmpty()) continue;
+			if (texturesTable == null || texturesTable.isEmpty()) continue;
 
 			BlockModelStandard model = new BlockModelStandard<>(block);
-			String atomName = atom.getString("name");
-			boolean b64 = Boolean.TRUE.equals(atom.getBoolean("base64"));
+			String atomName = atom.getString("data.name");
+			boolean b64 = AtomCompiler.getOrDefault(atom, "textures.encoding", "path").equals("base64");
 
-			for (int i = 0; i < texturesArray.size(); i++) {
-				TomlArray pair = texturesArray.getArray(i);
-				if (pair == null || pair.size() != 2) continue;
+			for (String face : texturesTable.dottedKeySet()) {
+				String tex = texturesTable.getString(face);
+				if (tex == null) continue;
 
-				String face = pair.getString(0);
-				String tex = pair.getString(1);
-				// System.out.println("TEEEEEEEEEEEEEEEEEEEX: " + tex);
-
-				// Si es base64, obtener la ruta del cache en lugar de regenerar
+				// Si es Base64, usar la cache
 				if (b64) {
 					String cacheKey = atomName + "_" + face;
 					String cachedPath = TEXTURE_PATHS.get(cacheKey);
 					if (cachedPath != null) {
-						// System.out.println("CACHE: " + cachedPath);
 						tex = MOD_ID + ":block/" + cachedPath;
 					}
 				}
 
-				// tex = tex.split(":")[0]+":block/"+tex.split(":")[1];
 				switch (face) {
 					case "all":
 					case "side":
@@ -96,6 +92,7 @@ public class Models implements ModelEntrypoint {
 			ModelHelper.setBlockModel(block, () -> model);
 		}
 	}
+
 
 	@Override
 	public void initItemModels(ItemModelDispatcher itemModelDispatcher) {

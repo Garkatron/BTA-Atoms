@@ -10,6 +10,7 @@ import net.minecraft.client.render.texture.stitcher.TextureRegistry;
 import net.minecraft.core.block.Block;
 import net.minecraft.core.block.material.Material;
 import net.minecraft.core.block.tag.BlockTags;
+import net.minecraft.core.item.Item;
 import net.minecraft.core.lang.I18n;
 import net.minecraft.core.lang.Language;
 import net.minecraft.core.sound.BlockSounds;
@@ -39,9 +40,6 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 	public static final List<Block<?>> blocks = new ArrayList<>();
 
-	private static final BlockBuilder GENERIC_BLOCK_BUILDER = new BlockBuilder(MOD_ID)
-		.setBlockSound(BlockSounds.STONE)
-		.setTags(BlockTags.MINEABLE_BY_PICKAXE);
 
 	@Override
 	public void beforeGameStart() {
@@ -71,48 +69,49 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 		loadAtoms(atoms);
 
 	}
+
 	private void loadTextures(List<TomlParseResult> atoms) {
 		// PROCESSING ALL
 		LOGGER.info("Registering textures for {} atoms...", atoms.size());
 
 		for (TomlParseResult atom : atoms) {
 
+			int version = AtomCompiler.getOrDefault(atom, "meta.format_version", 0);
+			if (version != AtomCompiler.AtomFormatVersion) continue;
+
 			// IF NOT NAME AVOID IT
-			String atomName = atom.getString("name");
+			String atomName = atom.getString("data.name");
 			if (atomName == null) {
 				LOGGER.warn("Encountered atom without a name. Skipping texture registration.");
 				continue;
 			}
 
 			// IF NOT TEXTURES AVOID IT
-			TomlArray texturesArray = atom.getArray("textures");
-			if (texturesArray == null) {
-				LOGGER.warn("Atom '{}' has no textures array. Skipping.", atomName);
+			TomlTable texturesTable = atom.getTable("textures.faces");
+			if (texturesTable == null) {
+				LOGGER.warn("Atom '{}' has no textures table. Skipping.", atomName);
 				continue;
 			}
 
-			boolean isBase64 = Boolean.TRUE.equals(atom.getBoolean("base64"));
+			boolean isBase64 = AtomCompiler.getOrDefault(atom, "textures.encoding", "path").equals("base64");
 
-			for (int i = 0; i < texturesArray.size(); i++) {
-				TomlArray pair = texturesArray.getArray(i);
+			// Iterate over all entries in the table
+			for (String face : texturesTable.dottedKeySet()) {
+				String tex = texturesTable.getString(face);
 
-				// AVOID TEXTURE IF NOT CORRECTLY FORMATTED, [SIDE, B64/PATH]
-				if (pair == null || pair.size() != 2) {
-					LOGGER.warn("Invalid texture entry for atom '{}'. Skipping entry index {}.", atomName, i);
+				if (tex == null) {
+					LOGGER.warn("Texture for face '{}' in atom '{}' is null. Skipping.", face, atomName);
 					continue;
 				}
-
-				String face = pair.getString(0);
-				String tex = pair.getString(1);
 
 				// CREATING TEXTURE INTO ATOMS TEXTURES FOLDER
 				String texPath;
 				if (isBase64) {
-					LOGGER.info("Texture is base64.");
+					LOGGER.info("Texture '{}' for atom '{}' is base64.", face, atomName);
 					String relativePath = AtomLoader.loadB64PNG(tex, atomName, face);
 					texPath = relativePath;
 				} else {
-					LOGGER.info("Texture is a path.");
+					LOGGER.info("Texture '{}' for atom '{}' is a path.", face, atomName);
 					texPath = tex;
 				}
 
@@ -123,7 +122,6 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 				((AtlasStitcherAccessor) TextureRegistry.blockAtlas).callGetTexture(id);
 			}
 
-			LoadingProgressBar.loadingProgress++;
 		}
 
 		// READING BLOCK FIELDS
@@ -136,7 +134,7 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 
 			// CREATE ATOMS MOD CONFIG WITH ALL LOADED BLOCKS NAMES
 			List<String> keys = atoms.stream()
-				.map(a -> a.getString("author") + "_" + a.getString("name"))
+				.map(data -> AtomCompiler.getOrDefault(data, "meta.author", "Unnamed") + "_" + AtomCompiler.getOrDefault(data, "data.name", "UnnamedBlock"))
 				.filter(Objects::nonNull)
 				.collect(Collectors.toList());
 
@@ -147,29 +145,9 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 			LOGGER.info("Creating block instances for atoms...");
 
 			for (TomlParseResult atom : atoms) {
-				String author = atom.getString("author");
-				String atomName = atom.getString("name");
-				if (atomName == null) atomName = "<Unnamed>";
-				String key = author + "_" + atomName;
 
-				String langkey = atom.getString("langkey");
+				AtomCompiler.compile(atom);
 
-				boolean iscubeshaped = Boolean.TRUE.equals(atom.getBoolean("iscubeshaped"));
-				boolean iscollidable = Boolean.TRUE.equals(atom.getBoolean("iscollidable"));
-				boolean issolidrender = Boolean.TRUE.equals(atom.getBoolean("issolidrender"));
-
-				String materialName = atom.getString("material");
-				Material material = MaterialUtils.MATERIALS.getOrDefault(materialName, Material.wood);
-
-				LOGGER.debug("Creating block '{}' with key '{}'.", atomName, key);
-
-				// BUILDING BLOCKS
-				blocks.add(GENERIC_BLOCK_BUILDER.build(
-					langkey,
-					atomName,
-					blockGoc(key),
-					b -> new AtomBlockLogic(b, material, iscubeshaped, iscollidable, issolidrender)
-				));
 			}
 
 			LOGGER.info("Atom blocks successfully created: {}", blocks.size());
@@ -182,7 +160,6 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 
 	@Override
 	public void afterGameStart() {
-
 		LOGGER.info("Registering language entries for atoms...");
 
 		List<TomlParseResult> atoms = AtomDataCache.ATOMS;
@@ -190,15 +167,15 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 		LanguageAccessor lang = (LanguageAccessor) language;
 
 		atoms.forEach(atom -> {
-			String langkey = atom.getString("langkey");
+			String langkey = AtomCompiler.getOrDefault(atom, "lang.key", null);
 			if (langkey == null) {
 				LOGGER.warn("Atom missing langkey. Skipping language registration.");
 				return;
 			}
 
 			String langid = language.getId();
-			TomlTable langTable = atom.getTable("lang");
 
+			TomlTable langTable = atom.getTable("lang");
 			if (langTable == null) {
 				LOGGER.warn("Atom '{}' has no 'lang' section. Skipping.", langkey);
 				return;
@@ -212,15 +189,21 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 
 			String displayName = localeTable.getString("name");
 			String description = localeTable.getString("desc");
+			String tooltip = localeTable.getString("tooltip");
 
 			if (displayName != null)
 				lang.getEntries().put("tile.atoms." + langkey + ".name", displayName);
 			if (description != null)
 				lang.getEntries().put("tile.atoms." + langkey + ".desc", description);
+			if (tooltip != null)
+				lang.getEntries().put("tile.atoms." + langkey + ".tooltip", tooltip);
 
-			LOGGER.info("Loaded language entries for '{}': name='{}', desc='{}'",
-				langkey, displayName, description);
+			LOGGER.info(
+				"Loaded language entries for '{}': name='{}', desc='{}', tooltip='{}'",
+				langkey, displayName, description, tooltip
+			);
 		});
+
 	}
 
 
