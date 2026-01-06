@@ -1,6 +1,7 @@
 package deus.atoms;
 
 import deus.atoms.blocks.AtomBlockLogic;
+import deus.atoms.gui.LoadingProgressBar;
 import deus.atoms.mixin.AtlasStitcherAccessor;
 import deus.atoms.mixin.I18nAccessor;
 import deus.atoms.mixin.LanguageAccessor;
@@ -21,6 +22,7 @@ import org.tomlj.TomlTable;
 import turniplabs.halplibe.helper.BlockBuilder;
 import turniplabs.halplibe.util.GameStartEntrypoint;
 
+import javax.swing.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,6 +51,7 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 	public void onInitialize() {
 		LOGGER.info("Initialization started.");
 
+
 		try {
 			AtomDataCache.ATOMS = AtomLoader.loadAllAtoms();
 			LOGGER.info("Atom definitions successfully loaded.");
@@ -62,6 +65,7 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 			LOGGER.error("No atoms found during initialization!");
 			return;
 		}
+
 
 		LOGGER.info("Registering textures for {} atoms...", atoms.size());
 
@@ -107,7 +111,7 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 				((AtlasStitcherAccessor) TextureRegistry.blockAtlas).callGetTexture(id);
 			}
 
-
+			LoadingProgressBar.loadingProgress++;
 		}
 
 		LOGGER.info("Assigning block IDs from config...");
@@ -186,7 +190,7 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 			}
 
 			String displayName = localeTable.getString("name");
-			String description = localeTable.getString("description");
+			String description = localeTable.getString("desc");
 
 			if (displayName != null)
 				lang.getEntries().put("tile.atoms." + langkey + ".name", displayName);
@@ -197,4 +201,6 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 				langkey, displayName, description);
 		});
 	}
+
+
 }
