@@ -7,6 +7,7 @@ import org.tomlj.TomlParseResult;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -26,12 +27,24 @@ public class AtomLoader {
 	public static final Path ATOMS_BLOCKS_PATH = Paths.get(ATOMS_PATH.toString(), "blocks");
 	public static final Path ATOMS_TEXTURES_PATH = Paths.get(ATOMS_PATH.toString(), "assets", "textures");
 
+	public static void createFolders() throws IOException {
+		Files.createDirectories(ATOMS_BLOCKS_PATH);
+		Files.createDirectories(ATOMS_TEXTURES_PATH);
+	}
+
 	public static List<TomlParseResult> loadAllAtoms() throws IOException {
 		List<TomlParseResult> results = new ArrayList<>();
 
-		if (!Files.exists(ATOMS_BLOCKS_PATH)) {
+		if (!Files.exists(ATOMS_BLOCKS_PATH) || !Files.isDirectory(ATOMS_BLOCKS_PATH)) {
 			Main.LOGGER.warn("0 Atoms found at {}.", ATOMS_BLOCKS_PATH);
 			return results;
+		}
+
+		try (DirectoryStream<Path> stream = Files.newDirectoryStream(ATOMS_BLOCKS_PATH)) {
+			if (!stream.iterator().hasNext()) {
+				Main.LOGGER.warn("0 Atoms found at {}.", ATOMS_BLOCKS_PATH);
+				return results;
+			}
 		}
 
 		try (Stream<Path> paths = Files.walk(ATOMS_BLOCKS_PATH)) {

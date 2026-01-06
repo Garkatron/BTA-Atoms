@@ -51,8 +51,9 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 	public void onInitialize() {
 		LOGGER.info("Initialization started.");
 
-
+		// TRY LOAD ATOMS
 		try {
+			AtomLoader.createFolders();
 			AtomDataCache.ATOMS = AtomLoader.loadAllAtoms();
 			LOGGER.info("Atom definitions successfully loaded.");
 		} catch (IOException e) {
@@ -66,16 +67,24 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 			return;
 		}
 
+		loadTextures(atoms);
+		loadAtoms(atoms);
 
+	}
+	private void loadTextures(List<TomlParseResult> atoms) {
+		// PROCESSING ALL
 		LOGGER.info("Registering textures for {} atoms...", atoms.size());
 
 		for (TomlParseResult atom : atoms) {
+
+			// IF NOT NAME AVOID IT
 			String atomName = atom.getString("name");
 			if (atomName == null) {
 				LOGGER.warn("Encountered atom without a name. Skipping texture registration.");
 				continue;
 			}
 
+			// IF NOT TEXTURES AVOID IT
 			TomlArray texturesArray = atom.getArray("textures");
 			if (texturesArray == null) {
 				LOGGER.warn("Atom '{}' has no textures array. Skipping.", atomName);
@@ -86,15 +95,17 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 
 			for (int i = 0; i < texturesArray.size(); i++) {
 				TomlArray pair = texturesArray.getArray(i);
+
+				// AVOID TEXTURE IF NOT CORRECTLY FORMATTED, [SIDE, B64/PATH]
 				if (pair == null || pair.size() != 2) {
-					LOGGER.warn("Invalid texture entry for atom '{}'. Skipping entry index {}.",
-						atomName, i);
+					LOGGER.warn("Invalid texture entry for atom '{}'. Skipping entry index {}.", atomName, i);
 					continue;
 				}
 
 				String face = pair.getString(0);
 				String tex = pair.getString(1);
 
+				// CREATING TEXTURE INTO ATOMS TEXTURES FOLDER
 				String texPath;
 				if (isBase64) {
 					LOGGER.info("Texture is base64.");
@@ -105,6 +116,7 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 					texPath = tex;
 				}
 
+				// REGISTER THE TEXTURE
 				NamespaceID id = NamespaceID.getPermanent(MOD_ID, texPath);
 				LOGGER.info("Registering texture '{}' for atom '{}'.", id, atomName);
 
@@ -114,9 +126,15 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 			LoadingProgressBar.loadingProgress++;
 		}
 
+		// READING BLOCK FIELDS
 		LOGGER.info("Assigning block IDs from config...");
 
+	}
+
+	private void loadAtoms(List<TomlParseResult> atoms) {
 		try {
+
+			// CREATE ATOMS MOD CONFIG WITH ALL LOADED BLOCKS NAMES
 			List<String> keys = atoms.stream()
 				.map(a -> a.getString("author") + "_" + a.getString("name"))
 				.filter(Objects::nonNull)
@@ -125,6 +143,7 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 			configBlockIDsFromNames(keys, ConfigManager.TOML);
 			ConfigManager.makeConfig();
 
+			// CREATING INSTANCES
 			LOGGER.info("Creating block instances for atoms...");
 
 			for (TomlParseResult atom : atoms) {
@@ -138,11 +157,13 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 				boolean iscubeshaped = Boolean.TRUE.equals(atom.getBoolean("iscubeshaped"));
 				boolean iscollidable = Boolean.TRUE.equals(atom.getBoolean("iscollidable"));
 				boolean issolidrender = Boolean.TRUE.equals(atom.getBoolean("issolidrender"));
+
 				String materialName = atom.getString("material");
 				Material material = MaterialUtils.MATERIALS.getOrDefault(materialName, Material.wood);
 
 				LOGGER.debug("Creating block '{}' with key '{}'.", atomName, key);
 
+				// BUILDING BLOCKS
 				blocks.add(GENERIC_BLOCK_BUILDER.build(
 					langkey,
 					atomName,
