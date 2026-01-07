@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "id": "atoms_nightly",
+  "id": "atoms",
   "version": "${version}",
 
-  "name": "Atoms Nightly",
-  "description": "Do not use with Atoms!",
+	"name": "Atoms",
+	"description": "This mod aims to help map-makers.",
   "authors": [
     "@Garkatron"
   ],
