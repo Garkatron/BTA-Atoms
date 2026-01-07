@@ -1,36 +1,25 @@
 package deus.atoms;
 
-import deus.atoms.blocks.AtomBlockLogic;
-import deus.atoms.gui.LoadingProgressBar;
 import deus.atoms.mixin.AtlasStitcherAccessor;
 import deus.atoms.mixin.I18nAccessor;
 import deus.atoms.mixin.LanguageAccessor;
+import deus.atoms.utils.CompiledBlock;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.client.render.texture.stitcher.TextureRegistry;
 import net.minecraft.core.block.Block;
-import net.minecraft.core.block.material.Material;
-import net.minecraft.core.block.tag.BlockTags;
-import net.minecraft.core.item.Item;
 import net.minecraft.core.lang.I18n;
 import net.minecraft.core.lang.Language;
-import net.minecraft.core.sound.BlockSounds;
 import net.minecraft.core.util.collection.NamespaceID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.tomlj.TomlArray;
-import org.tomlj.TomlParseResult;
-import org.tomlj.TomlTable;
-import turniplabs.halplibe.helper.BlockBuilder;
 import turniplabs.halplibe.util.GameStartEntrypoint;
 
-import javax.swing.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static deus.atoms.ConfigManager.blockGoc;
 import static deus.atoms.ConfigManager.configBlockIDsFromNames;
 
 
@@ -59,65 +48,77 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 			return;
 		}
 
-		List<TomlParseResult> atoms = AtomDataCache.ATOMS;
+		List<CompiledBlock> atoms = AtomDataCache.ATOMS;
 		if (atoms.isEmpty()) {
 			LOGGER.error("No atoms found during initialization!");
 			return;
 		}
 
-		loadTextures(atoms);
 		loadAtoms(atoms);
+		loadTextures(atoms);
+
+
 
 	}
 
-	private void loadTextures(List<TomlParseResult> atoms) {
+	private void loadTextures(List<CompiledBlock> atoms) {
 		// PROCESSING ALL
 		LOGGER.info("Registering textures for {} atoms...", atoms.size());
 
-		for (TomlParseResult atom : atoms) {
+		for (CompiledBlock atom : atoms) {
 
-			int version = AtomCompiler.getOrDefault(atom, "meta.format_version", 0);
-			if (version != AtomCompiler.AtomFormatVersion) continue;
+			if (atom.meta.formatVersion != AtomCompiler.AtomFormatVersion) continue;
 
 			// IF NOT NAME AVOID IT
-			String atomName = atom.getString("data.name");
-			if (atomName == null) {
+			if (atom.data.name == null) {
 				LOGGER.warn("Encountered atom without a name. Skipping texture registration.");
 				continue;
 			}
 
 			// IF NOT TEXTURES AVOID IT
-			TomlTable texturesTable = atom.getTable("textures.faces");
-			if (texturesTable == null) {
-				LOGGER.warn("Atom '{}' has no textures table. Skipping.", atomName);
+			if (atom.textures == null) {
+				LOGGER.warn("Atom '{}' has no textures table. Skipping.", atom.data.name);
 				continue;
 			}
 
-			boolean isBase64 = AtomCompiler.getOrDefault(atom, "textures.encoding", "path").equals("base64");
+			boolean isBase64 = atom.textures.encoding.equals("base64");
 
 			// Iterate over all entries in the table
-			for (String face : texturesTable.dottedKeySet()) {
-				String tex = texturesTable.getString(face);
+			String[] faces = new String[] {
+				"top", "bottom", "north", "south", "west", "east"
+			};
 
-				if (tex == null) {
-					LOGGER.warn("Texture for face '{}' in atom '{}' is null. Skipping.", face, atomName);
+			for (String face : faces) {
+				String tex = null;
+
+				switch (face) {
+					case "top":    tex = atom.textures.faces.top; break;
+					case "bottom": tex = atom.textures.faces.bottom; break;
+					case "north":  tex = atom.textures.faces.north; break;
+					case "south":  tex = atom.textures.faces.south; break;
+					case "west":   tex = atom.textures.faces.west; break;
+					case "east":   tex = atom.textures.faces.east; break;
+				}
+
+				if (face == null) {
+					LOGGER.warn("Texture for face '{}' in atom '{}' is null. Skipping.", face, atom.data.name);
 					continue;
 				}
 
 				// CREATING TEXTURE INTO ATOMS TEXTURES FOLDER
 				String texPath;
 				if (isBase64) {
-					LOGGER.info("Texture '{}' for atom '{}' is base64.", face, atomName);
-					String relativePath = AtomLoader.loadB64PNG(tex, atomName, face);
+					LOGGER.info("Texture '{}' for atom '{}' is base64.", face, atom.data.name);
+					String relativePath = AtomLoader.loadB64PNG(tex, atom.data.name, face);
 					texPath = relativePath;
 				} else {
-					LOGGER.info("Texture '{}' for atom '{}' is a path.", face, atomName);
-					texPath = tex;
+					LOGGER.info("Texture '{}' for atom '{}' is a path.", face, atom.data.name);
+					texPath = face;
 				}
 
 				// REGISTER THE TEXTURE
 				NamespaceID id = NamespaceID.getPermanent(MOD_ID, texPath);
-				LOGGER.info("Registering texture '{}' for atom '{}'.", id, atomName);
+				LOGGER.info("Registering texture '{}' for atom '{}'.", id, atom.data.name);
 
 				((AtlasStitcherAccessor) TextureRegistry.blockAtlas).callGetTexture(id);
 			}
@@ -129,14 +130,19 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 
 	}
 
-	private void loadAtoms(List<TomlParseResult> atoms) {
+	private void loadAtoms(List<CompiledBlock> atoms) {
 		try {
 
 			// CREATE ATOMS MOD CONFIG WITH ALL LOADED BLOCKS NAMES
 			List<String> keys = atoms.stream()
-				.map(data -> AtomCompiler.getOrDefault(data, "meta.author", "Unnamed") + "_" + AtomCompiler.getOrDefault(data, "data.name", "UnnamedBlock"))
+				.map(atom -> {
+					String author = atom.meta != null && atom.meta.author != null ? atom.meta.author : "Unnamed";
+					String name = atom.data != null && atom.data.name != null ? atom.data.name : "UnnamedBlock";
+					return author + "_" + name;
+				})
 				.filter(Objects::nonNull)
 				.collect(Collectors.toList());
+
 
 			configBlockIDsFromNames(keys, ConfigManager.TOML);
 			ConfigManager.makeConfig();
@@ -144,10 +150,9 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 			// CREATING INSTANCES
 			LOGGER.info("Creating block instances for atoms...");
 
-			for (TomlParseResult atom : atoms) {
 
-				AtomCompiler.compile(atom);
-
+			for (CompiledBlock atom : atoms) {
+				AtomCompiler.convertoIntoBlocks(atom);
 			}
 
 			LOGGER.info("Atom blocks successfully created: {}", blocks.size());
@@ -160,47 +165,46 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 
 	@Override
 	public void afterGameStart() {
+
 		LOGGER.info("Registering language entries for atoms...");
 
-		List<TomlParseResult> atoms = AtomDataCache.ATOMS;
+		List<CompiledBlock> atoms = AtomDataCache.ATOMS;
 		Language language = ((I18nAccessor) I18n.getInstance()).getLanguage();
 		LanguageAccessor lang = (LanguageAccessor) language;
 
 		atoms.forEach(atom -> {
-			String langkey = AtomCompiler.getOrDefault(atom, "lang.key", null);
-			if (langkey == null) {
+			if (atom.lang.key == null) {
 				LOGGER.warn("Atom missing langkey. Skipping language registration.");
 				return;
 			}
 
 			String langid = language.getId();
 
-			TomlTable langTable = atom.getTable("lang");
-			if (langTable == null) {
-				LOGGER.warn("Atom '{}' has no 'lang' section. Skipping.", langkey);
+			if (atom.lang == null) {
+				LOGGER.warn("Atom '{}' has no 'lang' section. Skipping.", atom.lang.key);
 				return;
 			}
 
-			TomlTable localeTable = langTable.getTable(langid);
+			CompiledBlock.Lang.LangLocale localeTable = atom.lang.locales.get(langid);
 			if (localeTable == null) {
-				LOGGER.warn("Atom '{}' has no entries for locale '{}'.", langkey, langid);
+				LOGGER.warn("Atom '{}' has no entries for locale '{}'.", atom.lang.key, langid);
 				return;
 			}
 
-			String displayName = localeTable.getString("name");
-			String description = localeTable.getString("desc");
-			String tooltip = localeTable.getString("tooltip");
+			String displayName = localeTable.name;
+			String description = localeTable.desc;
+			String tooltip = localeTable.tooltip;
 
 			if (displayName != null)
-				lang.getEntries().put("tile.atoms." + langkey + ".name", displayName);
+				lang.getEntries().put("tile.atoms." + atom.lang.key + ".name", displayName);
 			if (description != null)
-				lang.getEntries().put("tile.atoms." + langkey + ".desc", description);
+				lang.getEntries().put("tile.atoms." + atom.lang.key + ".desc", description);
 			if (tooltip != null)
-				lang.getEntries().put("tile.atoms." + langkey + ".tooltip", tooltip);
+				lang.getEntries().put("tile.atoms." + atom.lang.key + ".tooltip", tooltip);
 
 			LOGGER.info(
 				"Loaded language entries for '{}': name='{}', desc='{}', tooltip='{}'",
-				langkey, displayName, description, tooltip
+				atom.lang.key, displayName, description, tooltip
 			);
 		});
 

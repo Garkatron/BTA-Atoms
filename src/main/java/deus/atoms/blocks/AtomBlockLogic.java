@@ -1,6 +1,7 @@
 package deus.atoms.blocks;
 
 import deus.atoms.Main;
+import deus.atoms.utils.CompiledBlock;
 import net.minecraft.core.block.Block;
 import net.minecraft.core.block.BlockLogic;
 import net.minecraft.core.block.entity.TileEntity;
@@ -22,16 +23,18 @@ public class AtomBlockLogic extends BlockLogic {
 	private final boolean cubeShaped;
 	private final boolean collidable;
 	private final boolean solidRender;
-	private TomlArray drops = null;
+	private final boolean dropItself;
+	private List<CompiledBlock.Events.BreakEvent.Drops>  drops = null;
 
 	public AtomBlockLogic(Block<?> block, Material material,
 						  boolean cubeShaped,
 						  boolean collidable,
-						  boolean solidRender, TomlArray drops) {
+						  boolean solidRender, boolean dropItself, List<CompiledBlock.Events.BreakEvent.Drops> drops) {
 		super(block, material);
 		this.cubeShaped = cubeShaped;
 		this.collidable = collidable;
 		this.solidRender = solidRender;
+		this.dropItself = dropItself;
 		this.drops = drops;
 	}
 
@@ -39,18 +42,17 @@ public class AtomBlockLogic extends BlockLogic {
 	@Override
 	public ItemStack @Nullable [] getBreakResult(World world, EnumDropCause dropCause, int meta, TileEntity tileEntity) {
 
-		TomlArray dropsArray = this.drops;
-		if (dropsArray == null || dropsArray.isEmpty()) return super.getBreakResult(world, dropCause, meta, tileEntity);
+		if (this.drops == null) return super.getBreakResult(world, dropCause, meta, tileEntity);
 
 		List<ItemStack> drops = new ArrayList<>();
 
-		for (int i = 0; i < dropsArray.size(); i++) {
-			TomlTable drop = dropsArray.getTable(i);
+		for (int i = 0; i < this.drops.size(); i++) {
+			CompiledBlock.Events.BreakEvent.Drops drop = this.drops.get(i);
 			if (drop == null) continue;
 
-			int itemId = Math.toIntExact(drop.contains("item") ? drop.getLong("item") : 0);
-			String causeStr = drop.getString("cause");
-			long chance = drop.getLong("chance");
+			int itemId = Math.toIntExact(drop.item);
+			String causeStr = drop.cause;
+			int chance = drop.chance;
 
 			if (causeStr == null) continue;
 			EnumDropCause cause;

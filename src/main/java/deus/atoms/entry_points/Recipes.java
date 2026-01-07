@@ -3,6 +3,7 @@ package deus.atoms.entry_points;
 import deus.atoms.AtomCompiler;
 import deus.atoms.AtomDataCache;
 import deus.atoms.Main;
+import deus.atoms.utils.CompiledBlock;
 import net.minecraft.core.block.Block;
 import net.minecraft.core.block.Blocks;
 import net.minecraft.core.data.registry.Registries;
@@ -15,6 +16,7 @@ import org.tomlj.TomlArray;
 import org.tomlj.TomlParseResult;
 import org.tomlj.TomlTable;
 import turniplabs.halplibe.helper.RecipeBuilder;
+import turniplabs.halplibe.helper.recipeBuilders.RecipeBuilderFurnace;
 import turniplabs.halplibe.helper.recipeBuilders.RecipeBuilderShaped;
 import turniplabs.halplibe.util.RecipeEntrypoint;
 
@@ -37,67 +39,57 @@ public class Recipes implements RecipeEntrypoint {
 
 	@Override
 	public void onRecipesReady() {
-		List<TomlParseResult> atoms = AtomDataCache.ATOMS;
 
-		for (TomlParseResult data : atoms) {
-			// META
-			String author = AtomCompiler.getOrDefault(data, "meta.author", "unknown");
-			int version = AtomCompiler.getOrDefault(data, "meta.format_version", 0);
+		List<CompiledBlock> atoms = AtomDataCache.ATOMS;
 
-			// DATA
-			String atomName = AtomCompiler.getOrDefault(data, "data.name", "Unnamed");
+		for (CompiledBlock atom : atoms) {
 
-			if (version != AtomCompiler.AtomFormatVersion) {
-				Main.LOGGER.warn("Wrong format version for block '{}'.", atomName);
+
+
+			if (atom.meta.formatVersion != AtomCompiler.AtomFormatVersion) {
+				Main.LOGGER.warn("Wrong format version for block '{}'.", atom.data.name);
 				continue;
 			}
 
-			int output_amount = AtomCompiler.getOrDefault(data, "recipe.workbench.output_amount", 0);
-
-
 			// RECIPE
-			boolean enable_workbench = AtomCompiler.getOrDefault(data, "recipe.enable_workbench", false);
+			boolean enable_workbench = atom.recipe.enableWorkbench;
+			String recipeKey = atom.meta.author + "_" + atom.data.name;
 
-			TomlTable recipe = data.getTable("recipe.workbench");
-			if (!enable_workbench || recipe == null) return;
+			if (enable_workbench || atom.recipe.workbench.outputAmount > 0) {
+				List<List<String>> pattern = atom.recipe.workbench.pattern;
+				if (pattern.isEmpty()) continue;
 
-			TomlArray patternArray = recipe.getArray("pattern");
-			if (patternArray == null || patternArray.isEmpty()) return;
+				String[] shape = pattern.stream()
+					.map(row -> String.join("", row))
+					.toArray(String[]::new);
 
-			List<String> patternStrings = new ArrayList<>();
+				RecipeBuilderShaped recipeBuilderShaped = RecipeBuilder.Shaped(MOD_ID)
+					.setShape(shape);
 
-			for (int i = 0; i < patternArray.size(); i++) {
-				TomlArray row = patternArray.getArray(i);
-				if (row == null) continue;
-
-				StringBuilder sb = new StringBuilder();
-				for (int j = 0; j < row.size(); j++) {
-					String value = row.getString(j);
-					if (value != null) sb.append(value);
-				}
-				patternStrings.add(sb.toString());
+				atom.recipe.workbench.symbols.forEach(symbolMap -> {
+					symbolMap.forEach((k, v) -> {
+						recipeBuilderShaped.addInput(
+							k.charAt(0),
+							Item.getItem(v)
+						);
+					});
+				});
+				recipeBuilderShaped.create(MOD_ID + ":" + recipeKey, new ItemStack(Blocks.getBlock(blockGoc(recipeKey)).asItem(), atom.recipe.workbench.outputAmount));
 			}
 
-			RecipeBuilderShaped recipeBuilderShaped = RecipeBuilder.Shaped(MOD_ID)
-				.setShape(patternStrings.get(0), patternStrings.get(1), patternStrings.get(2));
+			boolean enable_furnace = atom.recipe.enableWorkbench;
 
-			TomlArray symbolsArray = data.getArrayOrEmpty("recipe.workbench.symbols");
-			for (int i = 0; i < symbolsArray.size(); i++) {
-				TomlTable symbolTable = symbolsArray.getTable(i);
-				if (symbolTable == null) continue;
+			if (!enable_furnace || atom.recipe.furnace.out_item_id > 0) {
+				RecipeBuilderFurnace recipeBuilderFurnace = new RecipeBuilderFurnace(MOD_ID)
+					.setInput(Blocks.getBlock(blockGoc(recipeKey)));
 
-				for (String key : symbolTable.keySet()) {
-					Long itemIdLong = symbolTable.getLong(key);
-					if (itemIdLong == null) continue;
-					int itemId = itemIdLong.intValue();
-
-					recipeBuilderShaped.addInput(key.charAt(0), Item.getItem(itemId));
-				}
+				recipeBuilderFurnace.create(MOD_ID + ":" + recipeKey, new ItemStack(atom.recipe.furnace.out_item_id, atom.recipe.furnace.output_amount, 0));
 			}
 
-			String recipeKey = author + "_" + atomName;
-			recipeBuilderShaped.create(MOD_ID + ":" + recipeKey, new ItemStack(Blocks.getBlock(blockGoc(recipeKey)).asItem(), output_amount));
+
 		}
+
 	}
+
 
 }

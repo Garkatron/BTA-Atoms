@@ -3,6 +3,7 @@ package deus.atoms.entry_points;
 import deus.atoms.AtomCompiler;
 import deus.atoms.AtomDataCache;
 import deus.atoms.Main;
+import deus.atoms.utils.CompiledBlock;
 import net.minecraft.client.render.EntityRenderDispatcher;
 import net.minecraft.client.render.TileEntityRenderDispatcher;
 import net.minecraft.client.render.block.color.BlockColorDispatcher;
@@ -28,35 +29,47 @@ public class Models implements ModelEntrypoint {
 	@Override
 	public void initBlockModels(BlockModelDispatcher blockModelDispatcher) {
 
-		List<TomlParseResult> atoms = AtomDataCache.ATOMS;
+		List<CompiledBlock> atoms = AtomDataCache.ATOMS;
 
 		for (Block<?> block : Main.blocks) {
 
-			Optional<TomlParseResult> atomOpt = atoms.stream()
+			Optional<CompiledBlock> atomOpt = atoms.stream()
 				.filter(a -> {
-					String name = a.getString("data.name");
+					String name = a.data.name;
 					return name != null && block.namespaceId().toString().contains(name);
 				})
 				.findFirst();
 
 			if (!atomOpt.isPresent()) continue;
 
-			TomlParseResult atom = atomOpt.get();
-			TomlTable texturesTable = atom.getTable("textures.faces");
+			CompiledBlock atom = atomOpt.get();
+			CompiledBlock.Textures.Faces texturesTable = atom.textures.faces;
 
-			if (texturesTable == null || texturesTable.isEmpty()) continue;
+			if (texturesTable == null) continue;
 
 			BlockModelStandard model = new BlockModelStandard<>(block);
-			String atomName = atom.getString("data.name");
-			boolean b64 = AtomCompiler.getOrDefault(atom, "textures.encoding", "path").equals("base64");
+			boolean b64 = atom.textures.encoding.equals("base64");
 
-			for (String face : texturesTable.dottedKeySet()) {
-				String tex = texturesTable.getString(face);
+			String[] faces = new String[] {
+				"top", "bottom", "north", "south", "west", "east"
+			};
+
+			for (String face : faces) {
+				String tex = null;
+
+				switch (face) {
+					case "top":    tex = atom.textures.faces.top; break;
+					case "bottom": tex = atom.textures.faces.bottom; break;
+					case "north":  tex = atom.textures.faces.north; break;
+					case "south":  tex = atom.textures.faces.south; break;
+					case "west":   tex = atom.textures.faces.west; break;
+					case "east":   tex = atom.textures.faces.east; break;
+				}
+
 				if (tex == null) continue;
 
-				// Si es Base64, usar la cache
 				if (b64) {
-					String cacheKey = atomName + "_" + face;
+					String cacheKey = atom.data.name + "_" + face;
 					String cachedPath = TEXTURE_PATHS.get(cacheKey);
 					if (cachedPath != null) {
 						tex = MOD_ID + ":block/" + cachedPath;
@@ -91,6 +104,8 @@ public class Models implements ModelEntrypoint {
 
 			ModelHelper.setBlockModel(block, () -> model);
 		}
+
+
 	}
 
 

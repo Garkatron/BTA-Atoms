@@ -1,5 +1,7 @@
 package deus.atoms;
 
+import deus.atoms.utils.AtomTomlDeserializer;
+import deus.atoms.utils.CompiledBlock;
 import net.minecraft.client.Minecraft;
 import org.tomlj.Toml;
 import org.tomlj.TomlParseResult;
@@ -32,8 +34,8 @@ public class AtomLoader {
 		Files.createDirectories(ATOMS_TEXTURES_PATH);
 	}
 
-	public static List<TomlParseResult> loadAllAtoms() throws IOException {
-		List<TomlParseResult> results = new ArrayList<>();
+	public static List<CompiledBlock> loadAllAtoms() throws IOException {
+		List<CompiledBlock> results = new ArrayList<>();
 
 		if (!Files.exists(ATOMS_BLOCKS_PATH) || !Files.isDirectory(ATOMS_BLOCKS_PATH)) {
 			Main.LOGGER.warn("0 Atoms found at {}.", ATOMS_BLOCKS_PATH);
@@ -54,8 +56,10 @@ public class AtomLoader {
 				.collect(Collectors.toList());
 
 			for (Path tomlFile : tomlFiles) {
-				results.add(loadToml(tomlFile));
+				results.add(AtomTomlDeserializer.fromToml(loadToml(tomlFile), CompiledBlock.class));
 			}
+		} catch (Exception e) {
+			throw new RuntimeException(e);
 		}
 
 		return results;
