@@ -66,14 +66,13 @@ public class AtomCompiler {
 
 		TomlArray tags = data.getArray("data.tags");
 		boolean immovable = getOrDefault(data, "data.immovable", false);
-		boolean infiniburn = getOrDefault(data, "data.infiniburn", false);
 		boolean unbreakable = getOrDefault(data, "data.unbreakable", false);
 
 		String material = getOrDefault(data, "data.material", "STONE");
 		float resistance = getOrDefault(data, "data.resistance", 0.0f);
 		float slipperiness = getOrDefault(data, "data.slipperiness", 0.6f);
 		float hardness = getOrDefault(data, "data.hardness", 1.0f);
-		int luminance = getOrDefault(data, "data.luminance", 0);
+		float luminance = getOrDefault(data, "data.luminance", 1.0f);
 
 // SOUND
 		String sound = getOrDefault(data, "sounds.sound", "STONE");
@@ -110,17 +109,16 @@ public class AtomCompiler {
 
 
 		// BLOCK BUILDER
-		BlockBuilder BLOCK_BUILDER = new BlockBuilder(Main.MOD_ID).setBlockSound(BlockSounds.STONE)
+		// TODO: Figure out why this thing doesn't work at all.
+		BlockBuilder BLOCK_BUILDER = new BlockBuilder(Main.MOD_ID)
 			.setBlockSound(blockSoundObject)
 			.setFlammability(chance_to_catch_fire, change_to_degrade)
 			.setHardness(hardness)
-			.setLuminance(luminance)
+			// .setLuminance(luminance) !
 			.setSlipperiness(slipperiness)
 			.setResistance(resistance);
 
-		if (infiniburn) BLOCK_BUILDER.setInfiniburn();
-		if (unbreakable) BLOCK_BUILDER.setUnbreakable();
-		if (immovable) BLOCK_BUILDER.setImmovable();
+
 
 		if (tags != null) {
 			for (int i = 0; i < tags.size(); i++) {
@@ -136,8 +134,23 @@ public class AtomCompiler {
 			langkey,
 			atom_name,
 			blockGoc(key),
-			b -> new AtomBlockLogic(b, materialObject, is_cube_shaped, is_collidable, is_solid_render, drops_array)
+			b -> {
+				b.withLightEmission(luminance);
+
+				if (unbreakable) b.withSetUnbreakable();
+				if (immovable) b.withImmovableFlagSet();
+
+				return new AtomBlockLogic(
+					b,
+					materialObject,
+					is_cube_shaped,
+					is_collidable,
+					is_solid_render,
+					drops_array
+				);
+			}
 		));
+
 	}
 
 
