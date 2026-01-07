@@ -52,13 +52,14 @@ public class Recipes implements RecipeEntrypoint {
 				continue;
 			}
 
-			int amount = AtomCompiler.getOrDefault(data, "recipe.workbench.amount", 0);
+			int output_amount = AtomCompiler.getOrDefault(data, "recipe.workbench.output_amount", 0);
 
 
 			// RECIPE
+			boolean enable_workbench = AtomCompiler.getOrDefault(data, "recipe.enable_workbench", false);
 
 			TomlTable recipe = data.getTable("recipe.workbench");
-			if (recipe == null) return;
+			if (!enable_workbench || recipe == null) return;
 
 			TomlArray patternArray = recipe.getArray("pattern");
 			if (patternArray == null || patternArray.isEmpty()) return;
@@ -95,7 +96,7 @@ public class Recipes implements RecipeEntrypoint {
 			}
 
 			String recipeKey = author + "_" + atomName;
-			recipeBuilderShaped.create(MOD_ID + ":" + recipeKey, new ItemStack(Blocks.getBlock(blockGoc(recipeKey)).asItem(), amount));
+			recipeBuilderShaped.create(MOD_ID + ":" + recipeKey, new ItemStack(Blocks.getBlock(blockGoc(recipeKey)).asItem(), output_amount));
 		}
 	}
 
