@@ -1,55 +1,59 @@
-package deus.atoms;
+package deus.atoms.toml;
 
+import deus.atoms.items.AtomItem;
+import deus.atoms.toml.types.CompiledBlock;
+import deus.atoms.toml.types.CompiledItem;
+import deus.atoms.toml.types.CompiledItemTool;
+import deus.atoms.utils.EnumUtils;
+import deus.atoms.Main;
 import deus.atoms.blocks.AtomBlockLogic;
-import deus.atoms.utils.CompiledBlock;
 import net.minecraft.core.block.material.Material;
 import net.minecraft.core.sound.BlockSound;
 import net.minecraft.core.sound.BlockSounds;
-import org.tomlj.TomlArray;
-import org.tomlj.TomlParseResult;
 import org.tomlj.TomlTable;
 import turniplabs.halplibe.helper.BlockBuilder;
 
-import static deus.atoms.ConfigManager.blockGoc;
-import static deus.atoms.Main.blocks;
+import static deus.atoms.Main.*;
+import static deus.atoms.utils.ConfigManager.blockGoc;
+import static deus.atoms.utils.ConfigManager.itemGoc;
 
 public class AtomCompiler {
 
 	public static final int AtomFormatVersion = 1;
 
-	@SuppressWarnings("unchecked")
-	public static <T> T getOrDefault(TomlTable data, String key, T fallback) {
-		if (data.contains(key)) {
-			Object value = data.get(key);
-			if (value != null) {
-				// Double → Float
-				if (fallback instanceof Float && value instanceof Double) {
-					return (T) Float.valueOf(((Double) value).floatValue());
-				}
-				// Double → Integer
-				else if (fallback instanceof Integer && value instanceof Double) {
-					return (T) Integer.valueOf(((Double) value).intValue());
-				}
-				// Long → Integer
-				else if (fallback instanceof Integer && value instanceof Long) {
-					return (T) Integer.valueOf(((Long) value).intValue());
-				}
-				return (T) value;
+	public static void convertIntoItem(CompiledItem atom) {
+		// Material materialObject = EnumUtils.MATERIALS.getOrDefault(atom.data.material, Material.wood);
+
+
+		// ! BUILDING
+		String key = (atom.meta.author + "_" + atom.data.name).trim();
+
+		if (atom.data.tags != null) {
+			for (String tag : atom.data.tags) {
+				// BLOCK_BUILDER.addTags(EnumUtils.BLOCK_TAGS.get(tag));
 			}
 		}
-		return fallback;
+
+		Main.LOGGER.debug("Creating block '{}' with key '{}'.", atom.data.name, key);
+
+		// BUILDING BLOCKS
+		items.add(
+			new AtomItem(atom.lang.key, MOD_ID + ":" +  atom.data.name, itemGoc(key))
+		);
+
 	}
 
+	public static void convertIntoItemTool(CompiledItemTool atom) {
+
+	}
 
 	public static void convertoIntoBlocks(CompiledBlock atom) {
-
-
 		Material materialObject = EnumUtils.MATERIALS.getOrDefault(atom.data.material, Material.wood);
 		BlockSound blockSoundObject = EnumUtils.BLOCK_SOUNDS.getOrDefault(atom.sounds.sound, BlockSounds.STONE);
 
 
 		// ! BUILDING
-		String key = atom.meta.author + "_" + atom.data.name;
+		String key = (atom.meta.author + "_" + atom.data.name).trim();
 
 
 		// BLOCK BUILDER
@@ -61,7 +65,6 @@ public class AtomCompiler {
 			// .setLuminance(luminance) !
 			.setSlipperiness((float) atom.data.slipperiness)
 			.setResistance((float) atom.data.resistance);
-
 
 
 		if (atom.data.tags != null) {
@@ -96,6 +99,8 @@ public class AtomCompiler {
 		));
 
 	}
+
+
 
 
 }

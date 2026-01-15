@@ -1,5 +1,6 @@
-package deus.atoms;
+package deus.atoms.utils;
 
+import deus.atoms.Main;
 import net.minecraft.core.block.Block;
 import net.minecraft.core.item.Item;
 import turniplabs.halplibe.util.TomlConfigHandler;
@@ -63,6 +64,16 @@ public class ConfigManager {
 		}
 	}
 
+	public static void configItemsIDsFromNames(List<String> names, Toml toml) {
+		for (String field : names) {
+			String key = "ITEM_IDs." + field;
+			Main.LOGGER.info("Adding: {}", field);
+			Entry<?> id = toml.getEntry(key);
+			if (id == null) {
+				toml.addEntry(key, START_ITEM_ID++);
+			}
+		}
+	}
 
 	public static int blockGoc(String blockFieldName) {
 		String key = "BLOCK_IDs." + blockFieldName;

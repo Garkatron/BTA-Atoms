@@ -1,10 +1,9 @@
-package deus.atoms;
+package deus.atoms.utils;
 
 import net.minecraft.core.block.Block;
 import net.minecraft.core.block.material.Material;
 import net.minecraft.core.block.tag.BlockTags;
 import net.minecraft.core.data.tag.Tag;
-import net.minecraft.core.enums.EnumDropCause;
 import net.minecraft.core.sound.BlockSound;
 import net.minecraft.core.sound.BlockSounds;
 

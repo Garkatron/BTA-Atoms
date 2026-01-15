@@ -1,5 +1,7 @@
-package deus.atoms.utils;
+package deus.atoms.toml;
 
+import deus.atoms.annotations.DeserializeToml;
+import deus.atoms.annotations.TomlIgnore;
 import org.tomlj.TomlArray;
 import org.tomlj.TomlTable;
 
@@ -45,122 +47,117 @@ public class AtomTomlDeserializer {
 
 		T obj = clazz.getDeclaredConstructor().newInstance();
 
-		for (Field field : clazz.getDeclaredFields()) {
-			field.setAccessible(true);
+		// Procesar campos de la clase actual y de todas las clases padre
+		for (Class<?> currentClass = clazz; currentClass != null; currentClass = currentClass.getSuperclass()) {
+			for (Field field : currentClass.getDeclaredFields()) {
+				field.setAccessible(true);
 
-			if (field.isAnnotationPresent(TomlIgnore.class)) {
-				continue;
-			}
+				if (field.isAnnotationPresent(TomlIgnore.class)) {
+					continue;
+				}
 
-			String key = toSnakeCase(field.getName());
-			if (table.contains(key)) {
-				Object value = table.get(key);
-				Class<?> type = field.getType();
+				String key = toSnakeCase(field.getName());
+				if (table.contains(key)) {
+					Object value = table.get(key);
+					Class<?> type = field.getType();
 
-				if (type == int.class || type == Integer.class) {
-					field.set(obj, ((Number)value).intValue());
-				} else if (type == long.class || type == Long.class) {
-					field.set(obj, ((Number)value).longValue());
-				} else if (type == double.class || type == Double.class) {
-					field.set(obj, ((Number)value).doubleValue());
-				} else if (type == boolean.class || type == Boolean.class) {
-					field.set(obj, value);
-				} else if (type == String.class) {
-					field.set(obj, value.toString());
-				} else if (value instanceof TomlTable && Map.class.isAssignableFrom(type)) {
-					// Manejar Map ANTES de verificar @DeserializeToml
-					Type genericType = field.getGenericType();
-					Type keyType = String.class;
-					Type valueType = Object.class;
-
-					if (genericType instanceof ParameterizedType) {
-						ParameterizedType pt = (ParameterizedType) genericType;
-						keyType = pt.getActualTypeArguments()[0];
-						valueType = pt.getActualTypeArguments()[1];
-					}
-
-					Map<Object, Object> map = tomlTableToMap((TomlTable) value, keyType, valueType);
-					field.set(obj, map);
-				} else if (value instanceof TomlTable && type.isAnnotationPresent(DeserializeToml.class)) {
-					// Solo llamar fromToml si la clase tiene la anotación
-					TomlTable subTable = (TomlTable) value;
-					Object nestedObj = fromToml(subTable, type);
-					field.set(obj, nestedObj);
-				} else if (value instanceof TomlArray) {
-					TomlArray array = (TomlArray) value;
-
-					if (List.class.isAssignableFrom(type)) {
+					if (type == int.class || type == Integer.class) {
+						field.set(obj, ((Number)value).intValue());
+					} else if (type == long.class || type == Long.class) {
+						field.set(obj, ((Number)value).longValue());
+					} else if (type == double.class || type == Double.class) {
+						field.set(obj, ((Number)value).doubleValue());
+					} else if (type == boolean.class || type == Boolean.class) {
+						field.set(obj, value);
+					} else if (type == String.class) {
+						field.set(obj, value.toString());
+					} else if (value instanceof TomlTable && Map.class.isAssignableFrom(type)) {
 						Type genericType = field.getGenericType();
+						Type keyType = String.class;
+						Type valueType = Object.class;
+
 						if (genericType instanceof ParameterizedType) {
 							ParameterizedType pt = (ParameterizedType) genericType;
-							Type actualType = pt.getActualTypeArguments()[0];
+							keyType = pt.getActualTypeArguments()[0];
+							valueType = pt.getActualTypeArguments()[1];
+						}
 
-							List<Object> list = new ArrayList<>();
+						Map<Object, Object> map = tomlTableToMap((TomlTable) value, keyType, valueType);
+						field.set(obj, map);
+					} else if (value instanceof TomlTable && type.isAnnotationPresent(DeserializeToml.class)) {
+						TomlTable subTable = (TomlTable) value;
+						Object nestedObj = fromToml(subTable, type);
+						field.set(obj, nestedObj);
+					} else if (value instanceof TomlArray) {
+						TomlArray array = (TomlArray) value;
 
-							// Caso: List<Map<K,V>>
-							if (actualType instanceof ParameterizedType) {
-								ParameterizedType innerType = (ParameterizedType) actualType;
-								Type innerRawType = innerType.getRawType();
+						if (List.class.isAssignableFrom(type)) {
+							Type genericType = field.getGenericType();
+							if (genericType instanceof ParameterizedType) {
+								ParameterizedType pt = (ParameterizedType) genericType;
+								Type actualType = pt.getActualTypeArguments()[0];
 
-								// Caso: List<Map<K,V>>
-								if (innerRawType instanceof Class<?> && Map.class.isAssignableFrom((Class<?>) innerRawType)) {
-									Type keyType = innerType.getActualTypeArguments()[0];
-									Type valueType = innerType.getActualTypeArguments()[1];
+								List<Object> list = new ArrayList<>();
 
-									for (int i = 0; i < array.size(); i++) {
-										Object elem = array.get(i);
-										if (elem instanceof TomlTable) {
-											Map<Object, Object> map = tomlTableToMap((TomlTable) elem, keyType, valueType);
-											list.add(map);
-										}
-									}
-								}
-								// Caso: List<List<T>>
-								else if (innerRawType instanceof Class<?> && List.class.isAssignableFrom((Class<?>) innerRawType)) {
-									Type elementType = innerType.getActualTypeArguments()[0];
+								if (actualType instanceof ParameterizedType) {
+									ParameterizedType innerType = (ParameterizedType) actualType;
+									Type innerRawType = innerType.getRawType();
 
-									for (int i = 0; i < array.size(); i++) {
-										Object elem = array.get(i);
-										if (elem instanceof TomlArray) {
-											TomlArray innerArray = (TomlArray) elem;
-											List<Object> innerList = new ArrayList<>();
+									if (innerRawType instanceof Class<?> && Map.class.isAssignableFrom((Class<?>) innerRawType)) {
+										Type keyType = innerType.getActualTypeArguments()[0];
+										Type valueType = innerType.getActualTypeArguments()[1];
 
-											for (int j = 0; j < innerArray.size(); j++) {
-												Object innerElem = innerArray.get(j);
-												Object converted = convertValue(innerElem, elementType);
-												if (converted != null) {
-													innerList.add(converted);
-												}
+										for (int i = 0; i < array.size(); i++) {
+											Object elem = array.get(i);
+											if (elem instanceof TomlTable) {
+												Map<Object, Object> map = tomlTableToMap((TomlTable) elem, keyType, valueType);
+												list.add(map);
 											}
-											list.add(innerList);
+										}
+									} else if (innerRawType instanceof Class<?> && List.class.isAssignableFrom((Class<?>) innerRawType)) {
+										Type elementType = innerType.getActualTypeArguments()[0];
+
+										for (int i = 0; i < array.size(); i++) {
+											Object elem = array.get(i);
+											if (elem instanceof TomlArray) {
+												TomlArray innerArray = (TomlArray) elem;
+												List<Object> innerList = new ArrayList<>();
+
+												for (int j = 0; j < innerArray.size(); j++) {
+													Object innerElem = innerArray.get(j);
+													Object converted = convertValue(innerElem, elementType);
+													if (converted != null) {
+														innerList.add(converted);
+													}
+												}
+												list.add(innerList);
+											}
+										}
+									}
+								} else if (actualType instanceof Class<?>) {
+									Class<?> itemType = (Class<?>) actualType;
+
+									for (int i = 0; i < array.size(); i++) {
+										Object elem = array.get(i);
+
+										if (itemType.isAnnotationPresent(DeserializeToml.class) && elem instanceof TomlTable) {
+											list.add(fromToml((TomlTable) elem, itemType));
+										} else if (itemType == String.class) {
+											list.add(elem.toString());
+										} else if (itemType == Integer.class || itemType == int.class) {
+											list.add(((Number) elem).intValue());
+										} else if (itemType == Double.class || itemType == double.class) {
+											list.add(((Number) elem).doubleValue());
+										} else if (itemType == Boolean.class || itemType == boolean.class) {
+											list.add(elem);
+										} else {
+											System.out.println("Advertencia: tipo de lista no soportado: " + itemType.getTypeName());
 										}
 									}
 								}
+
+								field.set(obj, list);
 							}
-							// Caso: List<Class<?>>
-							else if (actualType instanceof Class<?>) {
-								Class<?> itemType = (Class<?>) actualType;
-
-								for (int i = 0; i < array.size(); i++) {
-									Object elem = array.get(i);
-
-									if (itemType.isAnnotationPresent(DeserializeToml.class) && elem instanceof TomlTable) {
-										list.add(fromToml((TomlTable) elem, itemType));
-									} else if (itemType == String.class) {
-										list.add(elem.toString());
-									} else if (itemType == Integer.class || itemType == int.class) {
-										list.add(((Number) elem).intValue());
-									} else if (itemType == Double.class || itemType == double.class) {
-										list.add(((Number) elem).doubleValue());
-									} else if (itemType == Boolean.class || itemType == boolean.class) {
-										list.add(elem);
-									} else {
-										System.out.println("Advertencia: tipo de lista no soportado: " + itemType.getTypeName());
-									}
-								}
-							}
-
-							field.set(obj, list);
 						}
 					}
 				}

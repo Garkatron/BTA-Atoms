@@ -1,14 +1,14 @@
-package deus.atoms.utils;
+package deus.atoms.toml.types;
+
+import deus.atoms.annotations.DeserializeToml;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @DeserializeToml
-public class CompiledBlock {
+public class CompiledBlock extends CompiledAtom {
 
-	public Meta meta;
 	public Data data;
 	public Flammability flammability;
 	public Render render;
@@ -16,17 +16,9 @@ public class CompiledBlock {
 	public Physics physics;
 	public Textures textures;
 	public Events events;
-	public Lang lang;
 	public Recipe recipe;
 
 	// ------------------- Inner classes -------------------
-
-	@DeserializeToml
-	public static class Meta {
-		public String author;
-		public String objectType;
-		public int formatVersion;
-	}
 
 	@DeserializeToml
 	public static class Data {
@@ -97,19 +89,6 @@ public class CompiledBlock {
 		}
 	}
 
-	@DeserializeToml
-	public static class Lang { // [lang]
-		public String key;
-		public Map<String, LangLocale> locales; // [lang.en_US], [lang.es_ES] como Map
-
-
-		@DeserializeToml
-		public static class LangLocale {
-			public String name;
-			public String desc;
-			public String tooltip;
-		}
-	}
 
 	@DeserializeToml
 	public static class Recipe {

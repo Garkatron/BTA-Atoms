@@ -13,7 +13,7 @@ import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static deus.atoms.AtomLoader.ATOMS_TEXTURES_PATH;
+import static deus.atoms.toml.AtomLoader.ATOMS_TEXTURES_PATH;
 
 @Mixin(value = CustomAtlasHandler.class, remap = false)
 public class CustomAtlasHandlerMixin {

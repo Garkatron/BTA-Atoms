@@ -1,30 +1,23 @@
 package deus.atoms.entry_points;
 
-import deus.atoms.AtomCompiler;
-import deus.atoms.AtomDataCache;
+import deus.atoms.toml.AtomCompiler;
+import deus.atoms.toml.AtomDataCache;
 import deus.atoms.Main;
-import deus.atoms.utils.CompiledBlock;
-import net.minecraft.core.block.Block;
+import deus.atoms.toml.types.AtomType;
+import deus.atoms.toml.types.CompiledBlock;
 import net.minecraft.core.block.Blocks;
 import net.minecraft.core.data.registry.Registries;
-import net.minecraft.core.data.registry.recipe.RecipeGroup;
 import net.minecraft.core.data.registry.recipe.RecipeNamespace;
 import net.minecraft.core.item.Item;
 import net.minecraft.core.item.ItemStack;
-import net.minecraft.core.item.Items;
-import org.tomlj.TomlArray;
-import org.tomlj.TomlParseResult;
-import org.tomlj.TomlTable;
 import turniplabs.halplibe.helper.RecipeBuilder;
 import turniplabs.halplibe.helper.recipeBuilders.RecipeBuilderFurnace;
 import turniplabs.halplibe.helper.recipeBuilders.RecipeBuilderShaped;
 import turniplabs.halplibe.util.RecipeEntrypoint;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-import static deus.atoms.ConfigManager.blockGoc;
+import static deus.atoms.utils.ConfigManager.blockGoc;
 import static deus.atoms.Main.MOD_ID;
 
 
@@ -40,7 +33,7 @@ public class Recipes implements RecipeEntrypoint {
 	@Override
 	public void onRecipesReady() {
 
-		List<CompiledBlock> atoms = AtomDataCache.ATOMS;
+		List<CompiledBlock> atoms = (List<CompiledBlock>) AtomDataCache.ATOMS.get(AtomType.BLOCK);
 
 		for (CompiledBlock atom : atoms) {
 

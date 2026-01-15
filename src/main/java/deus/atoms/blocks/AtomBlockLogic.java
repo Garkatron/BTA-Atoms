@@ -1,7 +1,7 @@
 package deus.atoms.blocks;
 
 import deus.atoms.Main;
-import deus.atoms.utils.CompiledBlock;
+import deus.atoms.toml.types.CompiledBlock;
 import net.minecraft.core.block.Block;
 import net.minecraft.core.block.BlockLogic;
 import net.minecraft.core.block.entity.TileEntity;
@@ -9,11 +9,8 @@ import net.minecraft.core.block.material.Material;
 import net.minecraft.core.enums.EnumDropCause;
 import net.minecraft.core.item.Item;
 import net.minecraft.core.item.ItemStack;
-import net.minecraft.core.item.Items;
 import net.minecraft.core.world.World;
 import org.jetbrains.annotations.Nullable;
-import org.tomlj.TomlArray;
-import org.tomlj.TomlTable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +34,6 @@ public class AtomBlockLogic extends BlockLogic {
 		this.dropItself = dropItself;
 		this.drops = drops;
 	}
-
 
 	@Override
 	public ItemStack @Nullable [] getBreakResult(World world, EnumDropCause dropCause, int meta, TileEntity tileEntity) {

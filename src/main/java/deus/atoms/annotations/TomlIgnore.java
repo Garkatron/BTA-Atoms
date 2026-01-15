@@ -1,4 +1,4 @@
-package deus.atoms.utils;
+package deus.atoms.annotations;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
