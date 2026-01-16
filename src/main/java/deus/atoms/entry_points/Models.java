@@ -1,5 +1,6 @@
 package deus.atoms.entry_points;
 
+import deus.atoms.enums.BlockTypes;
 import deus.atoms.toml.AtomDataCache;
 import deus.atoms.Main;
 import deus.atoms.toml.types.AtomType;
@@ -10,13 +11,11 @@ import net.minecraft.client.render.TileEntityRenderDispatcher;
 import net.minecraft.client.render.block.color.BlockColorDispatcher;
 import net.minecraft.client.render.block.model.BlockModelDispatcher;
 import net.minecraft.client.render.block.model.BlockModelStandard;
-import net.minecraft.client.render.item.model.ItemModel;
 import net.minecraft.client.render.item.model.ItemModelDispatcher;
 import net.minecraft.client.render.item.model.ItemModelStandard;
 import net.minecraft.client.render.texture.stitcher.TextureRegistry;
 import net.minecraft.core.block.Block;
 import net.minecraft.core.item.Item;
-import net.minecraft.core.item.Items;
 import net.minecraft.core.util.helper.Side;
 import turniplabs.halplibe.helper.ModelHelper;
 import turniplabs.halplibe.util.ModelEntrypoint;
@@ -31,84 +30,101 @@ public class Models implements ModelEntrypoint {
 
 	@Override
 	public void initBlockModels(BlockModelDispatcher blockModelDispatcher) {
-
 		List<CompiledBlock> atoms = (List<CompiledBlock>) AtomDataCache.ATOMS.get(AtomType.BLOCK);
 
 		for (Block<?> block : Main.blocks) {
-
-			Optional<CompiledBlock> atomOpt = atoms.stream()
-				.filter(a -> {
-					String name = a.data.name;
-					return name != null && block.namespaceId().toString().contains(name);
-				})
-				.findFirst();
+			Optional<CompiledBlock> atomOpt = findAtomForBlock(block, atoms);
 
 			if (!atomOpt.isPresent()) continue;
 
 			CompiledBlock atom = atomOpt.get();
-			CompiledBlock.Textures.Faces texturesTable = atom.textures.faces;
 
-			if (texturesTable == null) continue;
+			if (atom.textures == null || atom.textures.faces == null) continue;
 
-			BlockModelStandard model = new BlockModelStandard<>(block);
-			boolean b64 = atom.textures.encoding.equals("base64");
+			// Crear el modelo apropiado
+			BlockModelStandard<?> model = createBlockModel(block, atom);
 
-			String[] faces = new String[] {
-				"top", "bottom", "north", "south", "west", "east"
-			};
+			// Aplicar texturas
+			applyTextures(model, atom);
 
-			for (String face : faces) {
-				String tex = null;
+			// Registrar el modelo
+			BlockModelStandard<?> finalModel = model;
+			ModelHelper.setBlockModel(block, () -> finalModel);
+		}
+	}
 
-				switch (face) {
-					case "top":    tex = atom.textures.faces.top; break;
-					case "bottom": tex = atom.textures.faces.bottom; break;
-					case "north":  tex = atom.textures.faces.north; break;
-					case "south":  tex = atom.textures.faces.south; break;
-					case "west":   tex = atom.textures.faces.west; break;
-					case "east":   tex = atom.textures.faces.east; break;
-				}
+	private Optional<CompiledBlock> findAtomForBlock(Block<?> block, List<CompiledBlock> atoms) {
+		String blockId = block.namespaceId().toString();
 
-				if (tex == null) continue;
+		return atoms.stream()
+			.filter(atom -> atom.data.name != null && blockId.contains(atom.data.name))
+			.findFirst();
+	}
 
-				if (b64) {
-					String cacheKey = atom.data.name + "_" + face;
-					String cachedPath = TEXTURE_PATHS.get(cacheKey);
-					if (cachedPath != null) {
-						tex = MOD_ID + ":block/" + cachedPath;
-					}
-				}
+	private BlockModelStandard<?> createBlockModel(Block<?> block, CompiledBlock atom) {
+		// Determinar el tipo de modelo
+		BlockTypes blockType = BlockTypes.fromString(
+			atom.model != null ? atom.model.type : null
+		);
 
-				switch (face) {
-					case "all":
-					case "side":
-						model.setTex(0, tex, Side.sides);
-						break;
-					case "top":
-						model.setTex(0, tex, Side.TOP);
-						break;
-					case "bottom":
-						model.setTex(0, tex, Side.BOTTOM);
-						break;
-					case "north":
-						model.setTex(0, tex, Side.NORTH);
-						break;
-					case "south":
-						model.setTex(0, tex, Side.SOUTH);
-						break;
-					case "east":
-						model.setTex(0, tex, Side.EAST);
-						break;
-					case "west":
-						model.setTex(0, tex, Side.WEST);
-						break;
-				}
+		try {
+			return blockType.createModel(block);
+		} catch (Exception e) {
+			Main.LOGGER.error("Failed creating model for block '{}', using default",
+				atom.data.name, e);
+			return new BlockModelStandard<>(block);
+		}
+	}
+
+	private void applyTextures(BlockModelStandard<?> model, CompiledBlock atom) {
+		boolean isBase64 = "base64".equals(atom.textures.encoding);
+		CompiledBlock.Textures.Faces faces = atom.textures.faces;
+
+		// Aplicar cada cara
+		applyFaceTexture(model, "top", faces.top, isBase64, atom.data.name);
+		applyFaceTexture(model, "bottom", faces.bottom, isBase64, atom.data.name);
+		applyFaceTexture(model, "north", faces.north, isBase64, atom.data.name);
+		applyFaceTexture(model, "south", faces.south, isBase64, atom.data.name);
+		applyFaceTexture(model, "east", faces.east, isBase64, atom.data.name);
+		applyFaceTexture(model, "west", faces.west, isBase64, atom.data.name);
+	}
+
+	private void applyFaceTexture(
+		BlockModelStandard<?> model,
+		String faceName,
+		String texture,
+		boolean isBase64,
+		String blockName
+	) {
+		if (texture == null) return;
+
+		// Procesar textura base64 si es necesario
+		String texturePath = texture;
+		if (isBase64) {
+			String cacheKey = blockName + "_" + faceName;
+			String cachedPath = TEXTURE_PATHS.get(cacheKey);
+			if (cachedPath != null) {
+				texturePath = MOD_ID + ":block/" + cachedPath;
 			}
-
-			ModelHelper.setBlockModel(block, () -> model);
 		}
 
+		// Aplicar la textura a la cara correspondiente
+		Side side = getSideFromFaceName(faceName);
+		if (side != null) {
+			model.setTex(0, texturePath, side);
+		}
+	}
 
+	private Side getSideFromFaceName(String faceName) {
+		switch (faceName.toLowerCase()) {
+			case "top":    return Side.TOP;
+			case "bottom": return Side.BOTTOM;
+			case "north":  return Side.NORTH;
+			case "south":  return Side.SOUTH;
+			case "east":   return Side.EAST;
+			case "west":   return Side.WEST;
+			default:       return null;
+		}
 	}
 
 

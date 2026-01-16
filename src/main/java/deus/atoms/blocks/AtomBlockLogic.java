@@ -38,7 +38,7 @@ public class AtomBlockLogic extends BlockLogic {
 	@Override
 	public ItemStack @Nullable [] getBreakResult(World world, EnumDropCause dropCause, int meta, TileEntity tileEntity) {
 
-		if (this.drops == null) return super.getBreakResult(world, dropCause, meta, tileEntity);
+		if (this.dropItself && this.drops == null) return super.getBreakResult(world, dropCause, meta, tileEntity);
 
 		List<ItemStack> drops = new ArrayList<>();
 

@@ -170,17 +170,6 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 		return true;
 	}
 
-	private void registerLanguageKeys(String key, CompiledBlock.Lang.LangLocale locale, LanguageAccessor langAccessor) {
-		if (locale.name != null) {
-			langAccessor.getEntries().put("tile.atoms." + key + ".name", locale.name);
-		}
-		if (locale.desc != null) {
-			langAccessor.getEntries().put("tile.atoms." + key + ".desc", locale.desc);
-		}
-		if (locale.tooltip != null) {
-			langAccessor.getEntries().put("tile.atoms." + key + ".tooltip", locale.tooltip);
-		}
-	}
 
 	private void logRegisteredEntries(String key, CompiledBlock.Lang.LangLocale locale) {
 		LOGGER.info(

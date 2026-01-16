@@ -24,7 +24,6 @@ public class CompiledAtom implements IHasMeta, IHasLang {
 	@DeserializeToml
 	public static class Meta {
 		public String author;
-		public String objectType;
 		public int formatVersion;
 	}
 

@@ -19,6 +19,7 @@ public class EnumUtils {
 	public static final Map<String, BlockSound> BLOCK_SOUNDS = new HashMap<>();
 	public static final Map<String, Tag<Block<?>>> BLOCK_TAGS = new HashMap<>();
 
+
 	static {
 		for (Field f : Material.class.getFields()) {
 			if (Material.class.isAssignableFrom(f.getType())) {

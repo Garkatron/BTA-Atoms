@@ -2,6 +2,7 @@ package deus.atoms.toml.types;
 
 import deus.atoms.annotations.DeserializeToml;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +18,8 @@ public class CompiledBlock extends CompiledAtom {
 	public Textures textures;
 	public Events events;
 	public Recipe recipe;
+	@Nullable public Model model;
+	@Nullable public Logic logic;
 
 	// ------------------- Inner classes -------------------
 
@@ -32,6 +35,18 @@ public class CompiledBlock extends CompiledAtom {
 		public String material;
 		public double luminance;
 	}
+
+	@DeserializeToml
+	public static class Model {
+		public String type;
+		public int baseBlockId;
+	}
+
+	@DeserializeToml
+	public static class Logic {
+		public String type;
+	}
+
 
 	@DeserializeToml
 	public static class Flammability {

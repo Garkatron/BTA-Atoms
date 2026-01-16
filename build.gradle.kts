@@ -5,6 +5,7 @@ import org.apache.tools.ant.taskdefs.condition.Os
 plugins {
     id("fabric-loom") version "1.10.0-bta"
     id("java")
+	id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 val lwjglVersion = "3.3.4"
@@ -132,6 +133,8 @@ dependencies {
 	implementation("org.tomlj:tomlj:1.0.0")
 	include("org.tomlj:tomlj:1.0.0")
 
+	implementation("org.antlr:antlr4-runtime:4.9.3")
+	include("org.antlr:antlr4-runtime:4.9.3")
 }
 
 java {
@@ -150,6 +153,17 @@ tasks.jar {
     }
 }
 
+tasks.shadowJar {
+	archiveClassifier.set("")
+	mergeServiceFiles()
+
+	relocate("org.antlr", "${project.group}.shadow.org.antlr")
+}
+
+tasks.remapJar {
+	dependsOn(tasks.shadowJar)
+	inputFile.set(tasks.shadowJar.get().archiveFile)
+}
 configurations.configureEach {
     // Removes LWJGL2 dependencies
     exclude(group = "org.lwjgl.lwjgl")
