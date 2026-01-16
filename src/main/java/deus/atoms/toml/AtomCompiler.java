@@ -3,11 +3,14 @@ package deus.atoms.toml;
 import deus.atoms.items.AtomItem;
 import deus.atoms.toml.types.CompiledBlock;
 import deus.atoms.toml.types.CompiledItem;
-import deus.atoms.toml.types.CompiledItemTool;
 import deus.atoms.utils.EnumUtils;
 import deus.atoms.Main;
 import deus.atoms.blocks.AtomBlockLogic;
 import net.minecraft.core.block.material.Material;
+import net.minecraft.core.item.Item;
+import net.minecraft.core.item.ItemFood;
+import net.minecraft.core.item.material.ToolMaterial;
+import net.minecraft.core.item.tool.*;
 import net.minecraft.core.sound.BlockSound;
 import net.minecraft.core.sound.BlockSounds;
 import org.tomlj.TomlTable;
@@ -22,8 +25,7 @@ public class AtomCompiler {
 	public static final int AtomFormatVersion = 1;
 
 	public static void convertIntoItem(CompiledItem atom) {
-		// Material materialObject = EnumUtils.MATERIALS.getOrDefault(atom.data.material, Material.wood);
-
+		ToolMaterial materialObject = EnumUtils.TOOL_MATERIALS.getOrDefault(atom.data.material.toUpperCase(), ToolMaterial.wood);
 
 		// ! BUILDING
 		String key = (atom.meta.author + "_" + atom.data.name).trim();
@@ -36,19 +38,48 @@ public class AtomCompiler {
 
 		Main.LOGGER.debug("Creating block '{}' with key '{}'.", atom.data.name, key);
 
-		// BUILDING BLOCKS
-		items.add(
-			new AtomItem(atom.lang.key, MOD_ID + ":" +  atom.data.name, itemGoc(key))
-		);
+		Item item;
+
+		if (atom.tool != null) {
+			switch (atom.tool.type.toUpperCase()) {
+				case "AXE":
+					item = new ItemToolAxe(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key), materialObject);
+					break;
+				case "SWORD":
+					item = new ItemToolSword(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key), materialObject);
+					break;
+				case "PICKAXE":
+					item = new ItemToolPickaxe(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key), materialObject);
+					break;
+				case "SHOVEL":
+					item = new ItemToolShovel(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key), materialObject);
+					break;
+				case "SHEARS":
+					item = new ItemToolShears(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key), materialObject);
+					break;
+				case "HOE":
+					item = new ItemToolHoe(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key), materialObject);
+					break;
+				case "DEFAULT":
+				default:
+					item = new AtomItem(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key));
+					break;
+			}
+		} else if (atom.food != null) {
+			item = new ItemFood(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key), atom.food.healAmount, atom.food.ticksPerHeal, atom.food.favouriteWolfMeat, atom.data.maxStackSize);
+		} else {
+			item = new AtomItem(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key));
+		}
+
+
+		items.add(item);
 
 	}
 
-	public static void convertIntoItemTool(CompiledItemTool atom) {
 
-	}
 
 	public static void convertoIntoBlocks(CompiledBlock atom) {
-		Material materialObject = EnumUtils.MATERIALS.getOrDefault(atom.data.material, Material.wood);
+		Material materialObject = EnumUtils.MATERIALS.getOrDefault(atom.data.material.toUpperCase(), Material.wood);
 		BlockSound blockSoundObject = EnumUtils.BLOCK_SOUNDS.getOrDefault(atom.sounds.sound, BlockSounds.STONE);
 
 

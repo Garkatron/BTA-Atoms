@@ -4,8 +4,7 @@ import java.util.Arrays;
 
 public enum AtomType {
 	BLOCK(".block.atom"),
-	ITEM(".item.atom"),
-	TOOL(".tool.atom");
+	ITEM(".item.atom");
 
 	private final String suffix;
 

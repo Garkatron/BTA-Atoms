@@ -1,11 +1,9 @@
 package deus.atoms.toml;
 
-import deus.atoms.Main;
 import deus.atoms.mixin.AtlasStitcherAccessor;
 import deus.atoms.toml.types.AtomType;
 import deus.atoms.toml.types.CompiledBlock;
 import deus.atoms.toml.types.CompiledItem;
-import deus.atoms.toml.types.CompiledItemTool;
 import deus.atoms.utils.ConfigManager;
 import deus.atoms.utils.ImageUtils;
 import net.minecraft.client.Minecraft;
@@ -14,8 +12,6 @@ import net.minecraft.core.util.collection.NamespaceID;
 import org.tomlj.Toml;
 import org.tomlj.TomlParseResult;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -28,7 +24,6 @@ import java.util.stream.Stream;
 import static deus.atoms.Main.*;
 import static deus.atoms.utils.ConfigManager.configBlockIDsFromNames;
 import static deus.atoms.utils.ConfigManager.configItemsIDsFromNames;
-
 
 public class AtomLoader {
 
@@ -47,7 +42,6 @@ public class AtomLoader {
 		Map<AtomType, List<?>> compiledAtoms = new EnumMap<>(AtomType.class);
 		compiledAtoms.put(AtomType.BLOCK, new ArrayList<CompiledBlock>());
 		compiledAtoms.put(AtomType.ITEM, new ArrayList<CompiledItem>());
-		compiledAtoms.put(AtomType.TOOL, new ArrayList<CompiledItemTool>());
 
 		if (!Files.exists(ATOMS_FILES_PATH) || !Files.isDirectory(ATOMS_FILES_PATH)) {
 			LOGGER.warn("0 Atoms found at {}.", ATOMS_FILES_PATH);
@@ -76,8 +70,7 @@ public class AtomLoader {
 
 		LOGGER.info("Loaded {} blocks, {} items, {} tools",
 			compiledAtoms.get(AtomType.BLOCK).size(),
-			compiledAtoms.get(AtomType.ITEM).size(),
-			compiledAtoms.get(AtomType.TOOL).size());
+			compiledAtoms.get(AtomType.ITEM).size());
 
 		return compiledAtoms;
 	}
@@ -97,10 +90,6 @@ public class AtomLoader {
 				((List<CompiledItem>) compiledAtoms.get(AtomType.ITEM))
 					.add(AtomTomlDeserializer.fromToml(tomlResult, CompiledItem.class));
 				break;
-			case TOOL:
-				((List<CompiledItemTool>) compiledAtoms.get(AtomType.TOOL))
-					.add(AtomTomlDeserializer.fromToml(tomlResult, CompiledItemTool.class));
-				break;
 		}
 	}
 
@@ -118,10 +107,67 @@ public class AtomLoader {
 	}
 
 	public static void loadTextures(Map<AtomType, List<?>> atoms) {
-		// PROCESSING ALL
-		LOGGER.info("Registering textures for {} atoms...", atoms.size());
+		loadBlockTextures((List<CompiledBlock>) atoms.get(AtomType.BLOCK));
+		loadItemTexture((List<CompiledItem>) atoms.get(AtomType.ITEM));
 
-		for (CompiledBlock atom : (List<CompiledBlock>) atoms.get(AtomType.BLOCK)) {
+	}
+
+	public static void loadItemTexture(List<CompiledItem> compiledItems) {
+		// PROCESSING ALL
+		LOGGER.info("Registering textures for {} atoms...", compiledItems.size());
+
+		for (CompiledItem atom : compiledItems) {
+
+			if (atom.meta.formatVersion != AtomCompiler.AtomFormatVersion) continue;
+
+			// IF NOT NAME AVOID IT
+			if (atom.data.name == null) {
+				LOGGER.warn("Encountered atom without a name. Skipping texture registration.");
+				continue;
+			}
+
+			// IF NOT TEXTURES AVOID IT
+			if (atom.textures == null) {
+				LOGGER.warn("Atom '{}' has no textures table. Skipping.", atom.data.name);
+				continue;
+			}
+
+			boolean isBase64 = atom.textures.encoding.equals("base64");
+
+
+			if (atom.textures.texture == null) {
+				LOGGER.warn("Texture in atom '{}' is null. Skipping.", atom.data.name);
+				continue;
+			}
+
+			// CREATING TEXTURE INTO ATOMS TEXTURES FOLDER
+			String texPath;
+			if (isBase64) {
+				LOGGER.info("Texture '{}' for atom '{}' is base64.", atom.data.name, atom.data.name);
+				String relativePath = ImageUtils.loadB64PNG(atom.textures.texture, "item", atom.data.name);
+				texPath = relativePath;
+			} else {
+				LOGGER.info("Texture for atom '{}' is a path.", atom.data.name);
+				texPath = atom.data.name;
+			}
+
+			// REGISTER THE TEXTURE
+			NamespaceID id = NamespaceID.getPermanent(MOD_ID, MOD_ID + ":" +  atom.data.name);
+			LOGGER.info("Registering texture '{}' for atom '{}'.", id, atom.data.name);
+
+			((AtlasStitcherAccessor) TextureRegistry.itemAtlas).callGetTexture(id);
+
+		}
+
+		// READING BLOCK FIELDS
+		LOGGER.info("Assigning block IDs from config...");
+	}
+
+	public static void loadBlockTextures(List<CompiledBlock> compiledBlocks) {
+		// PROCESSING ALL
+		LOGGER.info("Registering textures for {} atoms...", compiledBlocks.size());
+
+		for (CompiledBlock atom : compiledBlocks) {
 
 			if (atom.meta.formatVersion != AtomCompiler.AtomFormatVersion) continue;
 
@@ -165,7 +211,7 @@ public class AtomLoader {
 				String texPath;
 				if (isBase64) {
 					LOGGER.info("Texture '{}' for atom '{}' is base64.", face, atom.data.name);
-					String relativePath = ImageUtils.loadB64PNG(tex, atom.data.name, face);
+					String relativePath = ImageUtils.loadBlockB64PNG(tex, atom.data.name, face);
 					texPath = relativePath;
 				} else {
 					LOGGER.info("Texture '{}' for atom '{}' is a path.", face, atom.data.name);
@@ -183,7 +229,6 @@ public class AtomLoader {
 
 		// READING BLOCK FIELDS
 		LOGGER.info("Assigning block IDs from config...");
-
 	}
 
 	public static void loadAtoms(Map<AtomType, List<?>> atoms) {

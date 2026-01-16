@@ -1,13 +1,25 @@
 package deus.atoms.toml.types;
 
 import deus.atoms.annotations.DeserializeToml;
+import deus.atoms.annotations.IHasLang;
+import deus.atoms.annotations.IHasMeta;
 
 import java.util.Map;
 
 @DeserializeToml
-public class CompiledAtom {
+public class CompiledAtom implements IHasMeta, IHasLang {
 	public Meta meta;
 	public Lang lang;
+
+	@Override
+	public Lang getLang() {
+		return lang;
+	}
+
+	@Override
+	public Meta getMeta() {
+		return meta;
+	}
 
 	@DeserializeToml
 	public static class Meta {

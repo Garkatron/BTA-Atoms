@@ -2,6 +2,7 @@ package deus.atoms.toml.types;
 
 import deus.atoms.annotations.DeserializeToml;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 @DeserializeToml
@@ -24,5 +25,27 @@ public class CompiledItem extends CompiledAtom {
 		public String texture;
 	}
 
+	// Optional
+	@Nullable
+	public Tool tool;
 
+	@DeserializeToml
+	public static class Tool {
+		public String type;
+		public int damageDealt;
+		public String toolMaterial;
+		public String material;
+		public int weaponDamage;
+	}
+
+	// Optional
+	@Nullable
+	public Food food;
+
+	@DeserializeToml
+	public static class Food {
+		public int healAmount;
+		public int ticksPerHeal;
+		public boolean favouriteWolfMeat;
+	}
 }
