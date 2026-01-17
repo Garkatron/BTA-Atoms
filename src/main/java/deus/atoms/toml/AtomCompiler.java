@@ -2,6 +2,8 @@ package deus.atoms.toml;
 
 import deus.atoms.enums.BlockTypes;
 import deus.atoms.items.AtomItem;
+import deus.atoms.toml.project.ProjectProcessed;
+import deus.atoms.toml.project.ProjectResources;
 import deus.atoms.toml.types.CompiledBlock;
 import deus.atoms.toml.types.CompiledItem;
 import deus.atoms.utils.EnumUtils;
@@ -21,6 +23,7 @@ import net.minecraft.core.sound.BlockSound;
 import net.minecraft.core.sound.BlockSounds;
 import turniplabs.halplibe.helper.BlockBuilder;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static deus.atoms.Main.*;
@@ -31,7 +34,7 @@ public class AtomCompiler {
 
 	public static final int AtomFormatVersion = 1;
 
-	public static void convertIntoItem(CompiledItem atom) {
+	public static Item convertIntoItem(CompiledItem atom) {
 		ToolMaterial materialObject = EnumUtils.TOOL_MATERIALS.getOrDefault(atom.data.material.toUpperCase(), ToolMaterial.wood);
 
 		// ! BUILDING
@@ -79,13 +82,13 @@ public class AtomCompiler {
 		}
 
 
-		items.add(item);
+		return item;
 
 	}
 
 
 
-	public static void convertoIntoBlocks(CompiledBlock atom) {
+	public static Block<?> convertoIntoBlocks(CompiledBlock atom) {
 		Material materialObject = EnumUtils.MATERIALS.getOrDefault(
 			atom.data.material.toUpperCase(),
 			Material.wood
@@ -107,12 +110,12 @@ public class AtomCompiler {
 
 		addBlockTags(builder, atom.data.tags);
 
-		blocks.add(builder.build(
+		return builder.build(
 			atom.lang.key,
 			atom.data.name,
 			blockGoc(key),
 			block -> createBlockLogic(block, blockType, materialObject, atom)
-		));
+		);
 	}
 
 	private static BlockBuilder createBlockBuilder(CompiledBlock atom, BlockSound blockSound) {
@@ -173,6 +176,7 @@ public class AtomCompiler {
 		// Para otros tipos, usar la factory
 		return blockType.createLogic(block, baseModel, material);
 	}
+
 
 
 

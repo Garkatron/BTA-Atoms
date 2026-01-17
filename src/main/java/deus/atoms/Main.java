@@ -5,7 +5,10 @@ import deus.atoms.mixin.I18nAccessor;
 import deus.atoms.mixin.LanguageAccessor;
 import deus.atoms.toml.AtomDataCache;
 import deus.atoms.toml.AtomLoader;
+import deus.atoms.toml.project.ProjectProcessed;
+import deus.atoms.toml.project.ProjectResources;
 import deus.atoms.toml.types.AtomType;
+import deus.atoms.toml.types.CompiledAtom;
 import deus.atoms.toml.types.CompiledBlock;
 import deus.atoms.toml.types.CompiledItem;
 import net.fabricmc.api.ModInitializer;
@@ -18,25 +21,40 @@ import org.slf4j.LoggerFactory;
 import turniplabs.halplibe.util.GameStartEntrypoint;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class Main implements ModInitializer, GameStartEntrypoint {
 	public static final String MOD_ID = "atoms";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 	public static final List<Block<?>> blocks = new ArrayList<>();
-	public static final List<Item> items = new ArrayList<>();
+	public static List<ProjectProcessed> PROJECTS;
 
 	@Override
 	public void beforeGameStart() {
+
 	}
 
 	@Override
 	public void onInitialize() {
 		LOGGER.info("Initialization started.");
 
+		try {
+			AtomLoader.createFolders();
+			LOGGER.info("Creating folders.");
+		} catch (IOException e) {
+			LOGGER.error("Error creating folders.");
+			throw new RuntimeException(e);
+		}
+
+		LOGGER.info("Processing projects.");
+		PROJECTS = AtomLoader.processProjects(AtomLoader.loadProjects(AtomLoader.ATOMS_FILES_PATH));
+
+		/*
 		if (!loadAtomDefinitions()) {
 			return;
 		}
@@ -45,55 +63,69 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 		if (atoms.isEmpty()) {
 			LOGGER.error("No atoms found during initialization!");
 			return;
+		}*/
+
+		// AtomLoader.loadAtoms(atoms);
+		for (ProjectProcessed project : PROJECTS) {
+
+			AtomLoader.loadTextures(project.resources.getAtoms());
 		}
 
-		AtomLoader.loadAtoms(atoms);
-		AtomLoader.loadTextures(atoms);
+
 	}
 
 	@Override
 	public void afterGameStart() {
+		LOGGER.info("Registering language entries.");
+
 		registerLanguageEntries();
 	}
 
-	private boolean loadAtomDefinitions() {
-		try {
-			AtomLoader.createFolders();
-			AtomDataCache.ATOMS = AtomLoader.loadAllAtoms();
-			LOGGER.info("Atom definitions successfully loaded.");
-			return true;
-		} catch (IOException e) {
-			LOGGER.error("Failed to load atom definitions.", e);
-			return false;
-		}
-	}
 
-	public static <T> List<T> getAtomsOfType(Class<T> type) {
+
+	public static <T> List<T> getAtomsOfType(List<CompiledAtom> list, Class<T> type) {
 		if (AtomDataCache.ATOMS == null) return new ArrayList<>();
 
-		return AtomDataCache.ATOMS.values().stream()
-			.flatMap(List::stream)
+		return list.stream()
 			.filter(type::isInstance)
 			.map(type::cast)
 			.collect(Collectors.toList());
 	}
 
 	// Uso:
-	List<IHasLang> langAtoms = getAtomsOfType(IHasLang.class);
 
 	private void registerLanguageEntries() {
 		LOGGER.info("Registering language entries for atoms...");
 
-		List<IHasLang> atoms = getAtomsOfType(IHasLang.class);
-		if (atoms == null) {
-			return;
+		for (ProjectProcessed project : PROJECTS) {
+			List<IHasLang> atoms = getAtomsOfType(project.resources.getAtoms().values(), IHasLang.class);
+			if (atoms == null || atoms.isEmpty()) {
+				continue;
+			}
+
+			Language language = getLanguage();
+			LanguageAccessor langAccessor = (LanguageAccessor) language;
+			String localeId = language.getId();
+
+			atoms.forEach(atom -> registerAtomLanguage(atom, langAccessor, localeId));
+		}
+	}
+
+
+	private <T> List<T> getAtomsOfType(Collection<List<?>> atomLists, Class<T> type) {
+		List<T> result = new ArrayList<>();
+
+		for (List<?> atomList : atomLists) {
+			if (atomList == null) continue;
+
+			for (Object atom : atomList) {
+				if (type.isInstance(atom)) {
+					result.add(type.cast(atom));
+				}
+			}
 		}
 
-		Language language = getLanguage();
-		LanguageAccessor langAccessor = (LanguageAccessor) language;
-		String localeId = language.getId();
-
-		atoms.forEach(atom -> registerAtomLanguage(atom, langAccessor, localeId));
+		return result.isEmpty() ? null : result;
 	}
 
 	@SuppressWarnings("unchecked")

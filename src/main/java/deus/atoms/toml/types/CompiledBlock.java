@@ -1,6 +1,7 @@
 package deus.atoms.toml.types;
 
 import deus.atoms.annotations.DeserializeToml;
+import deus.atoms.toml.types.fields.Recipe;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -105,25 +106,5 @@ public class CompiledBlock extends CompiledAtom {
 	}
 
 
-	@DeserializeToml
-	public static class Recipe {
-		public boolean enableWorkbench;
-		public boolean enableFurnace;
-		public Workbench workbench;
-		public Furnace furnace;
 
-		@DeserializeToml
-		public static class Workbench {
-			public int outputAmount;
-			public List<List<String>> pattern;
-			public List<Map<String,Integer>> symbols = new ArrayList<>();
-
-		}
-
-		@DeserializeToml
-		public static class Furnace {
-			public int out_item_id;
-			public int output_amount;
-		}
-	}
 }

@@ -1,6 +1,7 @@
 package deus.atoms.toml.types;
 
 import deus.atoms.annotations.DeserializeToml;
+import deus.atoms.toml.types.fields.Recipe;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.List;
 public class CompiledItem extends CompiledAtom {
 	public Data data;
 	public Textures textures;
+	@Nullable public Recipe recipe;
 
 	@DeserializeToml
 	public static class Data {

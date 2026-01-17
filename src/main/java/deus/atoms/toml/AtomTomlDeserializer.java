@@ -47,7 +47,6 @@ public class AtomTomlDeserializer {
 
 		T obj = clazz.getDeclaredConstructor().newInstance();
 
-		// Procesar campos de la clase actual y de todas las clases padre
 		for (Class<?> currentClass = clazz; currentClass != null; currentClass = currentClass.getSuperclass()) {
 			for (Field field : currentClass.getDeclaredFields()) {
 				field.setAccessible(true);
@@ -185,9 +184,7 @@ public class AtomTomlDeserializer {
 	}
 
 	private static Object convertValue(Object value, Type targetType) {
-		// Caso especial: TomlTable -> Map (recursivo para Maps anidados)
 		if (value instanceof TomlTable) {
-			// Si el tipo objetivo es Map<K,V> parametrizado
 			if (targetType instanceof ParameterizedType) {
 				ParameterizedType pt = (ParameterizedType) targetType;
 				Type rawType = pt.getRawType();
@@ -197,11 +194,10 @@ public class AtomTomlDeserializer {
 					return tomlTableToMap((TomlTable) value, keyType, valueType);
 				}
 			}
-			// Si el tipo objetivo es Map sin parametrizar
+
 			if (targetType instanceof Class<?> && Map.class.isAssignableFrom((Class<?>) targetType)) {
 				return tomlTableToMap((TomlTable) value, String.class, Object.class);
 			}
-			// Si el tipo objetivo es una clase con @DeserializeToml
 			if (targetType instanceof Class<?> && ((Class<?>) targetType).isAnnotationPresent(DeserializeToml.class)) {
 				try {
 					return fromToml((TomlTable) value, (Class<?>) targetType);
@@ -210,13 +206,11 @@ public class AtomTomlDeserializer {
 					return null;
 				}
 			}
-			// Si es Object, convertir a Map genérico
 			if (targetType instanceof Class<?> && ((Class<?>) targetType) == Object.class) {
 				return tomlTableToMap((TomlTable) value, String.class, Object.class);
 			}
 		}
 
-		// Conversiones de tipos primitivos
 		if (targetType instanceof Class<?>) {
 			Class<?> clazz = (Class<?>) targetType;
 
@@ -237,11 +231,10 @@ public class AtomTomlDeserializer {
 			} else if (clazz == Boolean.class || clazz == boolean.class) {
 				return value;
 			} else if (clazz == Object.class) {
-				// Para Object, devolver el valor tal cual (a menos que sea TomlTable, ya manejado arriba)
 				return value;
 			}
 		}
 
-		return value; // Devolver el valor original si no se puede convertir
+		return value;
 	}
 }

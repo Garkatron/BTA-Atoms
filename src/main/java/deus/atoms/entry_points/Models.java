@@ -3,6 +3,7 @@ package deus.atoms.entry_points;
 import deus.atoms.enums.BlockTypes;
 import deus.atoms.toml.AtomDataCache;
 import deus.atoms.Main;
+import deus.atoms.toml.project.ProjectProcessed;
 import deus.atoms.toml.types.AtomType;
 import deus.atoms.toml.types.CompiledBlock;
 import deus.atoms.toml.types.CompiledItem;
@@ -20,9 +21,11 @@ import net.minecraft.core.util.helper.Side;
 import turniplabs.halplibe.helper.ModelHelper;
 import turniplabs.halplibe.util.ModelEntrypoint;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static deus.atoms.Main.LOGGER;
 import static deus.atoms.toml.AtomLoader.TEXTURE_PATHS;
 import static deus.atoms.Main.MOD_ID;
 
@@ -30,26 +33,38 @@ public class Models implements ModelEntrypoint {
 
 	@Override
 	public void initBlockModels(BlockModelDispatcher blockModelDispatcher) {
-		List<CompiledBlock> atoms = (List<CompiledBlock>) AtomDataCache.ATOMS.get(AtomType.BLOCK);
+		LOGGER.info("Initializing block models.");
 
-		for (Block<?> block : Main.blocks) {
-			Optional<CompiledBlock> atomOpt = findAtomForBlock(block, atoms);
+		// Recolectar todos los bloques compilados de todos los proyectos
+		List<CompiledBlock> allBlocks = new ArrayList<>();
+		for (ProjectProcessed project : Main.PROJECTS) {
+			List<CompiledBlock> projectBlocks = (List<CompiledBlock>) project.resources.getAtoms().get(AtomType.BLOCK);
+			if (projectBlocks != null) {
+				allBlocks.addAll(projectBlocks);
+			}
+		}
 
-			if (!atomOpt.isPresent()) continue;
+		// Procesar cada bloque registrado
+		for (ProjectProcessed project : Main.PROJECTS) {
+			project.blocks.forEach((key, block) -> {
+				Optional<CompiledBlock> atomOpt = findAtomForBlock(block, allBlocks);
 
-			CompiledBlock atom = atomOpt.get();
+				if (!atomOpt.isPresent()) return;
 
-			if (atom.textures == null || atom.textures.faces == null) continue;
+				CompiledBlock atom = atomOpt.get();
 
-			// Crear el modelo apropiado
-			BlockModelStandard<?> model = createBlockModel(block, atom);
+				if (atom.textures == null || atom.textures.faces == null) return;
 
-			// Aplicar texturas
-			applyTextures(model, atom);
+				// Crear el modelo apropiado
+				BlockModelStandard<?> model = createBlockModel(block, atom);
 
-			// Registrar el modelo
-			BlockModelStandard<?> finalModel = model;
-			ModelHelper.setBlockModel(block, () -> finalModel);
+				// Aplicar texturas
+				applyTextures(model, atom);
+
+				// Registrar el modelo
+				BlockModelStandard<?> finalModel = model;
+				ModelHelper.setBlockModel(block, () -> finalModel);
+			});
 		}
 	}
 
@@ -70,7 +85,7 @@ public class Models implements ModelEntrypoint {
 		try {
 			return blockType.createModel(block);
 		} catch (Exception e) {
-			Main.LOGGER.error("Failed creating model for block '{}', using default",
+			LOGGER.error("Failed creating model for block '{}', using default",
 				atom.data.name, e);
 			return new BlockModelStandard<>(block);
 		}
@@ -127,35 +142,43 @@ public class Models implements ModelEntrypoint {
 		}
 	}
 
-
 	@Override
 	public void initItemModels(ItemModelDispatcher itemModelDispatcher) {
-		List<CompiledItem> atoms = (List<CompiledItem>) AtomDataCache.ATOMS.get(AtomType.ITEM);
+		LOGGER.info("Initializing item models.");
 
-		for (Item item : Main.items) {
+		// Recolectar todos los items compilados de todos los proyectos
+		List<CompiledItem> allItems = new ArrayList<>();
+		for (ProjectProcessed project : Main.PROJECTS) {
+			List<CompiledItem> projectItems = (List<CompiledItem>) project.resources.getAtoms().get(AtomType.ITEM);
+			if (projectItems != null) {
+				allItems.addAll(projectItems);
+			}
+		}
 
-			Optional<CompiledItem> atomOpt = atoms.stream()
-				.filter(a -> {
-					String name = a.data.name;
-					return name != null && item.namespaceID.toString().contains(name);
-				})
-				.findFirst();
+		// Procesar cada item registrado
+		for (ProjectProcessed project : Main.PROJECTS) {
+			project.items.forEach((key, item) -> {
+				Optional<CompiledItem> atomOpt = allItems.stream()
+					.filter(a -> {
+						String name = a.data.name;
+						return name != null && item.namespaceID.toString().contains(name);
+					})
+					.findFirst();
 
-			if (!atomOpt.isPresent()) continue;
+				if (!atomOpt.isPresent()) return;
 
-			CompiledItem atom = atomOpt.get();
-			CompiledItem.Textures texture = atom.textures;
+				CompiledItem atom = atomOpt.get();
+				CompiledItem.Textures texture = atom.textures;
 
-			if (texture == null) continue;
+				if (texture == null) return;
 
-			ModelHelper.setItemModel(item,
-				() -> {
-					ItemModelStandard model = new ItemModelStandard(item, MOD_ID);
-					model.icon = TextureRegistry.getTexture(item.namespaceID);
-					return model;
-				});
-
-			// boolean b64 = atom.textures.encoding.equals("base64");
+				ModelHelper.setItemModel(item,
+					() -> {
+						ItemModelStandard model = new ItemModelStandard(item, MOD_ID);
+						model.icon = TextureRegistry.getTexture(item.namespaceID);
+						return model;
+					});
+			});
 		}
 	}
 
