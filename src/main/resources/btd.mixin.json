@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "deus.btd.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "AtlasStitcherMixin",
+    "I18nAccessor",
+    "LanguageAccessor"
+  ],
+  "client": [
+    "AtlasStitcherAccessor",
+    "IAEntityDispatcher",
+    "TextureRegistryMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "id": "atoms",
+  "id": "better_than_datapacks",
   "version": "${version}",
 
-	"name": "Atoms",
+	"name": "Better than datapacks",
 	"description": "This mod aims to help map-makers.",
   "authors": [
     "@Garkatron"
@@ -19,23 +19,23 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-			"deus.atoms.Main"
+			"deus.btd.Main"
     ],
 		"beforeGameStart": [
-			"deus.atoms.Main"
+			"deus.btd.Main"
 		],
 		"afterGameStart": [
-			"deus.atoms.Main"
+			"deus.btd.Main"
 		],
 		"recipesReady": [
-			"deus.atoms.entry_points.Recipes"
+			"deus.btd.entry_points.Recipes"
 		],
 		"initModels": [
-			"deus.atoms.entry_points.Models"
+			"deus.btd.entry_points.Models"
 		]
 	},
   "mixins": [
-    "atoms.mixin.json"
+		"btd.mixin.json"
   ],
 
   "depends": {
