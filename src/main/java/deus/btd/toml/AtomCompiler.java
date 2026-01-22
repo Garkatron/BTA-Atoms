@@ -153,6 +153,20 @@ public class AtomCompiler {
 			block.withImmovableFlagSet();
 		}
 
+		Block<?> baseModel = null;
+		if (atom.model != null && atom.model.baseBlockId >= 1) {
+			baseModel = Blocks.getBlock(atom.model.baseBlockId);
+		}
+
+		// TODO: FIX THIS SHIT
+		BlockTypes.BlockContext ctx = BlockTypes.BlockContext.of(block)
+			.withMaterial(material)
+			.withModelBlock(baseModel);
+
+		if (atom.model.rootKey != null && !atom.model.rootKey.trim().isEmpty()) {
+			ctx.withRootKey(atom.model.rootKey);
+		}
+
 		if (blockType == BlockTypes.DEFAULT) {
 			return new AtomBlockLogic(
 				block,
@@ -165,12 +179,7 @@ public class AtomCompiler {
 			);
 		}
 
-		Block<?> baseModel = Blocks.getBlock(1);
-		if (atom.model != null && atom.model.baseBlockId >= 1) {
-			baseModel = Blocks.getBlock(atom.model.baseBlockId);
-		}
-
-		return blockType.createLogic(block, baseModel, material);
+		return blockType.createLogic(ctx);
 	}
 
 

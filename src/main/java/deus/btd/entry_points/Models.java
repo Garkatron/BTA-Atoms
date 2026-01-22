@@ -73,8 +73,15 @@ public class Models implements ModelEntrypoint {
 			atom.model != null ? atom.model.type : null
 		);
 
+		// TODO: FIX THIS SHIT
+		BlockTypes.BlockContext ctx = BlockTypes.BlockContext.of(block);
+
+		if (atom.model.rootKey != null && !atom.model.rootKey.trim().isEmpty()) {
+			ctx.withRootKey(atom.model.rootKey);
+		}
+
 		try {
-			return blockType.createModel(block);
+			return blockType.createModel(ctx);
 		} catch (Exception e) {
 			LOGGER.error("Failed creating model for block '{}', using default",
 				atom.data.name, e);

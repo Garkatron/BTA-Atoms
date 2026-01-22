@@ -51,7 +51,8 @@ public class CompiledBlock extends CompiledAtom implements IHasLang {
 	@DeserializeToml
 	public static class Model {
 		public String type;
-		public int baseBlockId;
+		public int baseBlockId; // Only Stairs
+		@Nullable public String rootKey; // Only Chests
 	}
 
 	@DeserializeToml

@@ -1,6 +1,5 @@
 package deus.btd.enums;
 
-
 import deus.btd.blocks.AtomBlockLogic;
 import net.minecraft.client.render.block.model.*;
 import net.minecraft.core.block.*;
@@ -8,70 +7,98 @@ import net.minecraft.core.block.material.Material;
 
 import java.util.ArrayList;
 
-
 public enum BlockTypes {
 
 	DEFAULT(
-		(block, model, mat) -> new AtomBlockLogic(block, mat, true, true, true, true, new ArrayList<>()),
-		BlockModelStandard::new
+		ctx -> new AtomBlockLogic(ctx.block, ctx.material, true, true, true, true, new ArrayList<>()),
+		ctx -> new BlockModelStandard(ctx.block)
 	),
 
 	FURNACE(
-		(block, model, mat) -> new BlockLogicFurnace(block, false),
-		BlockModelStandard::new
+		ctx -> new BlockLogicFurnace(ctx.block, false),
+		ctx -> new BlockModelStandard(ctx.block)
 	),
 
 	BLAST_FURNACE(
-		(block, model, mat) -> new BlockLogicFurnaceBlast(block, false),
-		BlockModelStandard::new
+		ctx -> new BlockLogicFurnaceBlast(ctx.block, false),
+		ctx -> new BlockModelStandard(ctx.block)
 	),
 
 	WORKBENCH(
-		(block, model, mat) -> new BlockLogicWorkbench(block),
-		BlockModelStandard::new
+		ctx -> new BlockLogicWorkbench(ctx.block),
+		ctx -> new BlockModelStandard(ctx.block)
 	),
 
 	BUTTON(
-		(block, model, mat) -> new BlockLogicButton(block),
-		BlockModelStandard::new
+		ctx -> new BlockLogicButton(ctx.block),
+		ctx -> new BlockModelStandard(ctx.block)
 	),
 
 	STAIRS(
-		(block, model, mat) -> new BlockLogicStairs(block, model),
-		(d) -> new BlockModelStairs(d)
+		ctx -> new BlockLogicStairs(ctx.block, ctx.modelBlock),
+		ctx -> new BlockModelStairs(ctx.block)
 	),
 
 	CHEST(
-		(block, model, mat) -> new BlockLogicChest(block, (Material) mat),
-		b -> new BlockModelChest(b, "test")
+		ctx -> new BlockLogicChest(ctx.block, ctx.material),
+		ctx -> new BlockModelChest(ctx.block, ctx.rootKey)
 	);
 
 	@FunctionalInterface
-	public interface LogicFactory {
-		BlockLogic create(Block<?> block, Block<?> modelBlock, Material material);
+	public interface Factory {
+		BlockLogic createLogic(BlockContext ctx);
 	}
 
 	@FunctionalInterface
 	public interface ModelFactory {
-		BlockModelStandard create(Block<?> block);
+		BlockModelStandard createModel(BlockContext ctx);
 	}
 
-	private final LogicFactory logicFactory;
+	public static class BlockContext {
+		public final Block<?> block;
+		public Block<?> modelBlock;
+		public Material material;
+		public String rootKey;
+
+		private BlockContext(Block<?> block) {
+			this.block = block;
+		}
+
+		public static BlockContext of(Block<?> block) {
+			return new BlockContext(block);
+		}
+
+		public BlockContext withModelBlock(Block<?> modelBlock) {
+			this.modelBlock = modelBlock;
+			return this;
+		}
+
+		public BlockContext withMaterial(Material material) {
+			this.material = material;
+			return this;
+		}
+
+		public BlockContext withRootKey(String rootKey) {
+			this.rootKey = rootKey;
+			return this;
+		}
+	}
+
+	private final Factory logicFactory;
 	private final ModelFactory modelFactory;
 
-	BlockTypes(LogicFactory logicFactory, ModelFactory modelFactory) {
+	BlockTypes(Factory logicFactory, ModelFactory modelFactory) {
 		this.logicFactory = logicFactory;
 		this.modelFactory = modelFactory;
 	}
 
-	public BlockLogic createLogic(Block<?> block, Block<?> modelBlock, Material material) {
-		return logicFactory.create(block, modelBlock, material);
+	public BlockLogic createLogic(BlockContext ctx) {
+		return logicFactory.createLogic(ctx);
 	}
 
-	public BlockModelStandard createModel(Block<?> block) {
-		return modelFactory.create(block);
+	public BlockModelStandard createModel(BlockContext ctx) {
+		return modelFactory.createModel(ctx);
 	}
-
 
 	public static BlockTypes fromString(String name) {
 		if (name == null || name.trim().isEmpty()) {
