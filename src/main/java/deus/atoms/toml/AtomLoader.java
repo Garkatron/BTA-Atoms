@@ -30,7 +30,6 @@ public class AtomLoader {
 
 	public static final Path ATOMS_PATH = Paths.get(Minecraft.getMinecraft().getMinecraftDir().getPath(), "atoms");
 	public static final Path ATOMS_FILES_PATH = Paths.get(ATOMS_PATH.toString(), "data");
-	public static final Path ATOMS_TEXTURES_PATH = Paths.get(ATOMS_PATH.toString(), "assets", "textures");
 
 	public static void createFolders() throws IOException {
 		Files.createDirectories(ATOMS_FILES_PATH);
@@ -109,15 +108,6 @@ public class AtomLoader {
 	}
 
 
-
-	/**
-	 * Valida que un átomo tenga los datos necesarios
-	 */
-
-	public static void loadAtoms(Map<AtomType, List<?>> atoms) {
-		loadAtomBlocks((List<CompiledBlock>) atoms.get(AtomType.BLOCK));
-		loadAtomItems((List<CompiledItem>) atoms.get(AtomType.ITEM));
-	}
 
 	public static List<Block<?>> loadAtomBlocks(List<CompiledBlock> compiledBlocks) {
 		System.out.println(compiledBlocks.get(0).data);
