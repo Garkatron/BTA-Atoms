@@ -12,6 +12,7 @@ import deus.atoms.toml.types.CompiledAtom;
 import deus.atoms.toml.types.CompiledBlock;
 import deus.atoms.toml.types.CompiledItem;
 import net.fabricmc.api.ModInitializer;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.block.Block;
 import net.minecraft.core.item.Item;
 import net.minecraft.core.lang.I18n;
@@ -66,10 +67,7 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 		}*/
 
 		// AtomLoader.loadAtoms(atoms);
-		for (ProjectProcessed project : PROJECTS) {
 
-			AtomLoader.loadTextures(project.resources.getAtoms());
-		}
 
 
 	}
@@ -78,7 +76,12 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 	public void afterGameStart() {
 		LOGGER.info("Registering language entries.");
 
+		for (ProjectProcessed project : PROJECTS) {
+			project.resources.loadTextures();
+		}
+		Minecraft.getMinecraft().texturePackList.refresh();
 		registerLanguageEntries();
+
 	}
 
 

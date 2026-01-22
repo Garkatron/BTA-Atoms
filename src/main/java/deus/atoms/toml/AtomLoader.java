@@ -1,16 +1,12 @@
 package deus.atoms.toml;
 
-import deus.atoms.mixin.AtlasStitcherAccessor;
 import deus.atoms.toml.project.ProjectProcessed;
 import deus.atoms.toml.project.ProjectResources;
 import deus.atoms.toml.types.*;
 import deus.atoms.utils.ConfigManager;
-import deus.atoms.utils.ImageUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.render.texture.stitcher.TextureRegistry;
 import net.minecraft.core.block.Block;
 import net.minecraft.core.item.Item;
-import net.minecraft.core.util.collection.NamespaceID;
 import org.tomlj.Toml;
 import org.tomlj.TomlParseResult;
 
@@ -38,7 +34,6 @@ public class AtomLoader {
 
 	public static void createFolders() throws IOException {
 		Files.createDirectories(ATOMS_FILES_PATH);
-		Files.createDirectories(ATOMS_TEXTURES_PATH);
 	}
 
 	public static Map<AtomType, List<?>> loadAllAtoms() throws IOException {
@@ -113,152 +108,11 @@ public class AtomLoader {
 		return result;
 	}
 
-	public static void loadTextures(Map<AtomType, List<?>> atoms) {
-		loadBlockTextures((List<CompiledBlock>) atoms.get(AtomType.BLOCK));
-		loadItemTextures((List<CompiledItem>) atoms.get(AtomType.ITEM));
 
-	}
-
-	public static void loadItemTextures(List<CompiledItem> compiledItems) {
-		LOGGER.info("Registering textures for {} item atoms...", compiledItems.size());
-
-		for (CompiledItem atom : compiledItems) {
-			// Validaciones básicas
-			if (!validateAtom(atom, "item")) continue;
-			if (atom.textures.texture == null) {
-				LOGGER.warn("Texture in atom '{}' is null. Skipping.", atom.data.name);
-				continue;
-			}
-
-			boolean isBase64 = "base64".equals(atom.textures.encoding);
-
-			// Procesar textura
-			String texPath;
-			if (isBase64) {
-				LOGGER.info("Processing base64 texture for item atom '{}'.", atom.data.name);
-				texPath = ImageUtils.loadB64PNG(atom.textures.texture, "item", atom.data.name);
-			} else {
-				LOGGER.info("Using path texture for item atom '{}'.", atom.data.name);
-				texPath = atom.textures.texture;
-			}
-
-			// Registrar textura
-			registerTexture(texPath, atom.data.name, true);
-		}
-
-		LOGGER.info("Item texture registration complete.");
-	}
-
-	public static void loadBlockTextures(List<CompiledBlock> compiledBlocks) {
-		LOGGER.info("Registering textures for {} block atoms...", compiledBlocks.size());
-
-		String[] faces = {"top", "bottom", "north", "south", "west", "east"};
-
-		for (CompiledBlock atom : compiledBlocks) {
-			// Validaciones básicas
-			if (!validateAtom(atom, "block")) continue;
-			if (atom.textures.faces == null) {
-				LOGGER.warn("Atom '{}' has no faces defined. Skipping.", atom.data.name);
-				continue;
-			}
-
-			boolean isBase64 = "base64".equals(atom.textures.encoding);
-
-			// Procesar cada cara
-			for (String face : faces) {
-				String tex = getFaceTexture(atom.textures.faces, face);
-
-				if (tex == null) {
-					LOGGER.debug("Texture for face '{}' in atom '{}' is null. Skipping.", face, atom.data.name);
-					continue;
-				}
-
-				// Procesar textura
-				String texPath;
-				if (isBase64) {
-					LOGGER.info("Processing base64 texture for face '{}' of block atom '{}'.", face, atom.data.name);
-					texPath = ImageUtils.loadBlockB64PNG(tex, atom.data.name, face);
-					TEXTURE_PATHS.put(atom.data.name + "_" + face, texPath);
-				} else {
-					LOGGER.info("Using path texture for face '{}' of block atom '{}'.", face, atom.data.name);
-					texPath = tex;
-				}
-
-				// Registrar textura
-				registerTexture(texPath, atom.data.name, false);
-			}
-		}
-
-		LOGGER.info("Block texture registration complete.");
-	}
 
 	/**
 	 * Valida que un átomo tenga los datos necesarios
 	 */
-	private static boolean validateAtom(Object atom, String type) {
-		String name = null;
-		int formatVersion = 0;
-		Object textures = null;
-
-		if (atom instanceof CompiledItem) {
-			CompiledItem item = (CompiledItem) atom;
-			name = item.data.name;
-			formatVersion = item.meta.formatVersion;
-			textures = item.textures;
-		} else if (atom instanceof CompiledBlock) {
-			CompiledBlock block = (CompiledBlock) atom;
-			name = block.data.name;
-			formatVersion = block.meta.formatVersion;
-			textures = block.textures;
-		}
-
-		if (formatVersion != AtomCompiler.AtomFormatVersion) {
-			LOGGER.warn("Wrong format version for {} atom. Skipping.", type);
-			return false;
-		}
-
-		if (name == null) {
-			LOGGER.warn("Encountered {} atom without a name. Skipping.", type);
-			return false;
-		}
-
-		if (textures == null) {
-			LOGGER.warn("{} atom '{}' has no textures table. Skipping.",
-				type.substring(0, 1).toUpperCase() + type.substring(1), name);
-			return false;
-		}
-
-		return true;
-	}
-
-	/**
-	 * Obtiene la textura de una cara específica
-	 */
-	private static String getFaceTexture(CompiledBlock.Textures.Faces faces, String face) {
-		switch (face) {
-			case "top":    return faces.top;
-			case "bottom": return faces.bottom;
-			case "north":  return faces.north;
-			case "south":  return faces.south;
-			case "west":   return faces.west;
-			case "east":   return faces.east;
-			default:       return null;
-		}
-	}
-
-	/**
-	 * Registra una textura en el atlas correspondiente
-	 */
-	private static void registerTexture(String texPath, String atomName, boolean isItem) {
-		NamespaceID id = NamespaceID.getPermanent(MOD_ID, texPath);
-		LOGGER.info("Registering texture '{}' for atom '{}'.", id, atomName);
-
-		if (isItem) {
-			((AtlasStitcherAccessor) TextureRegistry.itemAtlas).callGetTexture(id);
-		} else {
-			((AtlasStitcherAccessor) TextureRegistry.blockAtlas).callGetTexture(id);
-		}
-	}
 
 	public static void loadAtoms(Map<AtomType, List<?>> atoms) {
 		loadAtomBlocks((List<CompiledBlock>) atoms.get(AtomType.BLOCK));
@@ -343,7 +197,7 @@ public class AtomLoader {
 		try (Stream<Path> paths = Files.walk(folder)) {
 			paths
 				.filter(Files::isRegularFile)
-				.filter(p -> p.getFileName().toString().endsWith(".project.atom"))
+				.filter(p -> p.getFileName().toString().endsWith(".project.atom.zip"))
 				.forEach(zip -> {
 					try {
 						projectResources.add(new ProjectResources(zip));

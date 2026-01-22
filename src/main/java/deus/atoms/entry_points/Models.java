@@ -114,14 +114,13 @@ public class Models implements ModelEntrypoint {
 		if (texture == null) return;
 
 		// Procesar textura base64 si es necesario
+
 		String texturePath = texture;
-		if (isBase64) {
-			String cacheKey = blockName + "_" + faceName;
-			String cachedPath = TEXTURE_PATHS.get(cacheKey);
-			if (cachedPath != null) {
-				texturePath = MOD_ID + ":block/" + cachedPath;
-			}
-		}
+		String cacheKey = blockName + "_" + faceName;
+		/*String cachedPath = TEXTURE_PATHS.get(cacheKey);
+		if (cachedPath != null) {
+			texturePath = MOD_ID + ":block/" + cachedPath;
+		}*/
 
 		// Aplicar la textura a la cara correspondiente
 		Side side = getSideFromFaceName(faceName);

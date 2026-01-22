@@ -1,7 +1,10 @@
 package deus.atoms.utils;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -43,6 +46,37 @@ public abstract class ZipResources implements Closeable {
 	public boolean isEmpty(String path) throws IOException {
 		try (Stream<Path> s = list(path)) {
 			return !s.findAny().isPresent();
+		}
+	}
+
+	public Path extractTemp(String zipPath) throws IOException {
+		Path tempFile = Files.createTempFile("zip_texture_", ".png");
+		try (InputStream is = getInputStreamFromZip(zipPath)) {
+			Files.copy(is, tempFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+		}
+		return tempFile;
+	}
+
+	public InputStream getInputStreamFromZip(String zipPath) throws IOException {
+		Path p = get(zipPath);
+		if (!Files.exists(p)) {
+			throw new IOException("File not found in ZIP: " + zipPath);
+		}
+		return Files.newInputStream(p);
+	}
+
+	public BufferedImage readImage(String zipPath) throws IOException {
+		try (InputStream is = getInputStreamFromZip(zipPath)) {
+			return ImageIO.read(is);
+		}
+	}
+
+
+	public BufferedImage readImageSafe(String zipPath) {
+		try {
+			return readImage(zipPath);
+		} catch (IOException e) {
+			return null;
 		}
 	}
 
