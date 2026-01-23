@@ -76,7 +76,7 @@ public class Models implements ModelEntrypoint {
 		// TODO: FIX THIS SHIT
 		BlockTypes.BlockContext ctx = BlockTypes.BlockContext.of(block);
 
-		if (atom.model.rootKey != null && !atom.model.rootKey.trim().isEmpty()) {
+		if (atom.model != null && atom.model.rootKey != null && !atom.model.rootKey.trim().isEmpty()) {
 			ctx.withRootKey(atom.model.rootKey);
 		}
 
@@ -150,12 +150,13 @@ public class Models implements ModelEntrypoint {
 				CompiledItem atom = atomOpt.get();
 				CompiledItem.Textures texture = atom.textures;
 
-				if (texture == null) return;
+				if (texture.texture == null) return;
 
 				ModelHelper.setItemModel(item,
 					() -> {
 						ItemModelStandard model = new ItemModelStandard(item, MOD_ID);
-						model.icon = TextureRegistry.getTexture(item.namespaceID);
+
+						model.icon = TextureRegistry.getTexture(texture.texture);
 						return model;
 					});
 			});

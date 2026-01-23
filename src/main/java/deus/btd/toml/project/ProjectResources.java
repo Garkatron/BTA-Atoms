@@ -1,6 +1,7 @@
 package deus.btd.toml.project;
 
 import deus.btd.mixin.AtlasStitcherAccessor;
+import deus.btd.mixin.TexturePackCustomAccessor;
 import deus.btd.toml.AtomCompiler;
 import deus.btd.toml.AtomLoader;
 import deus.btd.toml.types.AtomType;
@@ -48,7 +49,7 @@ public class ProjectResources implements Closeable {
 		emptyData = data && zipResources.isEmpty("/data");
 		cache = new ProjectDataCache();
 
-		header = AtomLoader.loadAtomProjectHeader(zipResources.get(".project.atom"));
+		header = AtomLoader.loadAtomProjectHeader(zipResources.get("manifest.atom"));
 		name = header.data.name;
 
 		cache.ATOMS = loadAtoms();
@@ -149,6 +150,11 @@ public class ProjectResources implements Closeable {
 			}
 
 			texturesPack = new TexturePackCustom(tempZip);
+
+			if (this.zipResources.exists("assets/pack.png")) {
+				((TexturePackCustomAccessor)texturesPack).setThumbnailBuffer(this.zipResources.readImageSafe("assets/pack.png"));
+			}
+
 			texturesPack.readZipFile();
 			texturesPack.readTexturePackManifest();
 			LOGGER.info("Loaded texturepack from atompack successfully");

@@ -120,7 +120,7 @@ public class AtomLoader {
 
 
 			for (CompiledBlock atom : compiledBlocks) {
-				if (AtomCompiler.isValidBlockAtom(atom)) continue;
+				if (!AtomCompiler.isValidBlockAtom(atom)) continue;
 				blocks.add(AtomCompiler.convertIntoBlocks(atom));
 			}
 
@@ -162,7 +162,7 @@ public class AtomLoader {
 
 
 			for (CompiledItem atom : compiledItems) {
-				if (AtomCompiler.isValidItemAtom(atom)) continue;
+				if (!AtomCompiler.isValidItemAtom(atom)) continue;
 				items.add(AtomCompiler.convertIntoItem(atom));
 			}
 

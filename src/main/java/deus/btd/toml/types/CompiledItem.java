@@ -44,10 +44,6 @@ public class CompiledItem extends CompiledAtom  implements IHasLang {
 	@DeserializeToml
 	public static class Tool {
 		public String type;
-		public int damageDealt;
-		public String toolMaterial;
-		public String material;
-		public int weaponDamage;
 	}
 
 	// Optional

@@ -11,6 +11,7 @@
   "client": [
     "AtlasStitcherAccessor",
     "IAEntityDispatcher",
+    "TexturePackCustomAccessor",
     "TextureRegistryMixin"
   ],
   "injectors": {

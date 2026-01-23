@@ -59,7 +59,7 @@ public class Recipes implements RecipeEntrypoint {
 	public void createBlockRecipes(List<CompiledBlock> atoms) {
 		for (CompiledBlock atom : atoms) {
 			if (atom.meta.formatVersion != AtomCompiler.AtomFormatVersion) {
-				Main.LOGGER.warn("Wrong format version for block '{}'.", atom.data.name);
+				Main.LOGGER.warn("Wrong format version for block '{}' v{}.", atom.data.name, atom.meta.formatVersion);
 				continue;
 			}
 

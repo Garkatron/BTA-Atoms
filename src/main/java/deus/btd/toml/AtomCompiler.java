@@ -217,7 +217,7 @@ public class AtomCompiler {
 			.withMaterial(material)
 			.withModelBlock(baseModel);
 
-		if (atom.model.rootKey != null && !atom.model.rootKey.trim().isEmpty()) {
+		if (atom.model != null && atom.model.rootKey != null && !atom.model.rootKey.trim().isEmpty()) {
 			ctx.withRootKey(atom.model.rootKey);
 		}
 
