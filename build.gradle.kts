@@ -5,7 +5,6 @@ import org.apache.tools.ant.taskdefs.condition.Os
 plugins {
     id("fabric-loom") version "1.10.0-bta"
     id("java")
-	id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 val lwjglVersion = "3.3.4"
@@ -111,9 +110,6 @@ dependencies {
     implementation("org.apache.logging.log4j:log4j-api:$log4jVersion")
     implementation("org.apache.logging.log4j:log4j-1.2-api:$log4jVersion")
 
-    implementation("org.apache.commons:commons-lang3:3.12.0")
-    include("org.apache.commons:commons-lang3:3.12.0")
-
     modImplementation("com.github.Better-than-Adventure:legacy-lwjgl3:1.0.5")
     implementation(platform("org.lwjgl:lwjgl-bom:$lwjglVersion"))
 
@@ -132,9 +128,10 @@ dependencies {
 
 	implementation("org.tomlj:tomlj:1.0.0")
 	include("org.tomlj:tomlj:1.0.0")
-
 	implementation("org.antlr:antlr4-runtime:4.9.3")
 	include("org.antlr:antlr4-runtime:4.9.3")
+	implementation("org.apache.commons:commons-lang3:3.12.0")
+	include("org.apache.commons:commons-lang3:3.12.0")
 }
 
 java {
@@ -153,17 +150,8 @@ tasks.jar {
     }
 }
 
-tasks.shadowJar {
-	archiveClassifier.set("")
-	mergeServiceFiles()
 
-	relocate("org.antlr", "${project.group}.shadow.org.antlr")
-}
 
-tasks.remapJar {
-	dependsOn(tasks.shadowJar)
-	inputFile.set(tasks.shadowJar.get().archiveFile)
-}
 configurations.configureEach {
     // Removes LWJGL2 dependencies
     exclude(group = "org.lwjgl.lwjgl")
