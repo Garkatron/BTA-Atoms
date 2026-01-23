@@ -2,6 +2,7 @@ package deus.btd.toml;
 
 import deus.btd.enums.BlockTypes;
 import deus.btd.items.AtomItem;
+import deus.btd.toml.types.CompiledAtom;
 import deus.btd.toml.types.CompiledBlock;
 import deus.btd.toml.types.CompiledItem;
 import deus.btd.utils.EnumUtils;
@@ -20,6 +21,8 @@ import net.minecraft.core.sound.BlockSound;
 import net.minecraft.core.sound.BlockSounds;
 import turniplabs.halplibe.helper.BlockBuilder;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static deus.btd.Main.*;
@@ -29,7 +32,7 @@ import static deus.btd.utils.ConfigManager.itemGoc;
 
 public class AtomCompiler {
 
-	public static final int AtomFormatVersion = 1;
+	public static final int AtomFormatVersion = 2;
 
 	public static Item convertIntoItem(CompiledItem atom) {
 		ToolMaterial materialObject = EnumUtils.TOOL_MATERIALS.getOrDefault(atom.data.material.toUpperCase(), ToolMaterial.wood);
@@ -37,11 +40,6 @@ public class AtomCompiler {
 		// ! BUILDING
 		String key = formatAtomKey(atom.meta.author, atom.data.name);
 
-		if (atom.data.tags != null) {
-			for (String tag : atom.data.tags) {
-				// BLOCK_BUILDER.addTags(EnumUtils.BLOCK_TAGS.get(tag));
-			}
-		}
 
 		Main.LOGGER.debug("Creating block '{}' with key '{}'.", atom.data.name, key);
 
@@ -78,11 +76,66 @@ public class AtomCompiler {
 			item = new AtomItem(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key));
 		}
 
+		if (atom.data.tags != null) {
+			List<Tag<Item>> tags = new ArrayList<>();
+			for (String tag : atom.data.tags) {
+				Tag<Item> t = EnumUtils.ITEM_TAGS.get(tag);
+				if (t != null) {
+					tags.add(t);
+				}
+			}
+			if (!tags.isEmpty()) {
+				item.withTags(tags.toArray(new Tag[0]));
+			}
+		}
 
 		return item;
 
 	}
 
+	public static boolean isValidItemAtom(CompiledItem item) {
+		if (item == null) {
+			LOGGER.warn("Item atom is null. Skipping.");
+			return false;
+		}
+
+		String name = item.data.name;
+		int formatVersion = item.meta.formatVersion;
+
+		if (formatVersion != AtomFormatVersion) {
+			LOGGER.warn("Wrong format version {} != {} for item '{}'. Skipping.", formatVersion, AtomFormatVersion, name);
+			return false;
+		}
+
+		if (name == null) {
+			LOGGER.warn("Encountered item atom without a name. Skipping.");
+			return false;
+		}
+
+		return true;
+	}
+
+	public static boolean isValidBlockAtom(CompiledBlock block) {
+		if (block == null) {
+			LOGGER.warn("Block atom is null. Skipping.");
+			return false;
+		}
+
+		String name = block.data.name;
+		int formatVersion = block.meta.formatVersion;
+
+		if (formatVersion != AtomFormatVersion) {
+			LOGGER.warn("Wrong format version {} != {} for block '{}'. Skipping.", formatVersion, AtomFormatVersion, name);
+			return false;
+		}
+
+		if (name == null) {
+			LOGGER.warn("Encountered block atom without a name. Skipping.");
+			return false;
+		}
+
+		return true;
+	}
 
 
 	public static Block<?> convertIntoBlocks(CompiledBlock atom) {
@@ -118,10 +171,11 @@ public class AtomCompiler {
 	private static BlockBuilder createBlockBuilder(CompiledBlock atom, BlockSound blockSound) {
 		BlockBuilder builder = new BlockBuilder(atom.Namespace())
 			.setBlockSound(blockSound)
-			.setFlammability(atom.flammability.chanceToCatchFire, atom.flammability.changeToDegrade)
 			.setHardness((float) atom.data.hardness)
 			.setSlipperiness((float) atom.data.slipperiness)
 			.setResistance((float) atom.data.resistance);
+
+		if (atom.flammability != null) builder.setFlammability(atom.flammability.chanceToCatchFire, atom.flammability.changeToDegrade);
 
 		return builder;
 	}
@@ -171,12 +225,13 @@ public class AtomCompiler {
 			return new AtomBlockLogic(
 				block,
 				material,
-				atom.render.isCubeShaped,
-				atom.physics.isCollidable,
-				atom.render.isSolidRender,
-				atom.events.onBreak.dropItself,
-				atom.events.onBreak.drops
+				atom.render == null || atom.render.isCubeShaped,
+				atom.physics == null || atom.physics.isCollidable,
+				atom.render == null || atom.render.isSolidRender,
+				atom.events == null || atom.events.onBreak.dropItself,
+				atom.events != null ? atom.events.onBreak.drops : Collections.emptyList()
 			);
+
 		}
 
 		return blockType.createLogic(ctx);

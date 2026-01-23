@@ -57,6 +57,7 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 
 		for (ProjectProcessed project : PROJECTS) {
 			project.resources.loadTextures();
+			project.resources.loadDatapack();
 		}
 		Minecraft.getMinecraft().texturePackList.refresh();
 		registerLanguageEntries();

@@ -16,7 +16,7 @@ public class CompiledItem extends CompiledAtom  implements IHasLang {
 
 	@Nullable public Lang lang;
 	@Nullable public Recipe recipe;
-
+	@Nullable public Tool tool;
 
 	@Override
 	public @Nullable Lang getLang() {
@@ -33,7 +33,6 @@ public class CompiledItem extends CompiledAtom  implements IHasLang {
 		public String name;
 		public List<String> tags;
 		public String material;
-		public int maxDamage;
 		public int maxStackSize;
 	}
 
@@ -41,10 +40,6 @@ public class CompiledItem extends CompiledAtom  implements IHasLang {
 	public static class Textures {
 		public String texture;
 	}
-
-	// Optional
-	@Nullable
-	public Tool tool;
 
 	@DeserializeToml
 	public static class Tool {

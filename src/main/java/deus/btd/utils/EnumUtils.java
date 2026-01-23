@@ -4,7 +4,9 @@ import net.minecraft.core.block.Block;
 import net.minecraft.core.block.material.Material;
 import net.minecraft.core.block.tag.BlockTags;
 import net.minecraft.core.data.tag.Tag;
+import net.minecraft.core.item.Item;
 import net.minecraft.core.item.material.ToolMaterial;
+import net.minecraft.core.item.tag.ItemTags;
 import net.minecraft.core.sound.BlockSound;
 import net.minecraft.core.sound.BlockSounds;
 
@@ -18,6 +20,7 @@ public class EnumUtils {
 	public static final Map<String, ToolMaterial> TOOL_MATERIALS = new HashMap<>();
 	public static final Map<String, BlockSound> BLOCK_SOUNDS = new HashMap<>();
 	public static final Map<String, Tag<Block<?>>> BLOCK_TAGS = new HashMap<>();
+	public static final Map<String, Tag<Item>> ITEM_TAGS = new HashMap<>();
 
 
 	static {
@@ -51,6 +54,15 @@ public class EnumUtils {
 			if (ToolMaterial.class.isAssignableFrom(f.getType())) {
 				try {
 					TOOL_MATERIALS.put(f.getName().toUpperCase(), (ToolMaterial) f.get(null));
+				} catch (IllegalAccessException ignored) {}
+			}
+		}
+		for (Field f : ItemTags.class.getFields()) {
+			if (Tag.class.isAssignableFrom(f.getType())) {
+				try {
+					@SuppressWarnings("unchecked")
+					Tag<Item> tag = (Tag<Item>) f.get(null);
+					ITEM_TAGS.put(f.getName().toUpperCase(), tag);
 				} catch (IllegalAccessException ignored) {}
 			}
 		}

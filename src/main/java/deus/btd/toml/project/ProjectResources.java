@@ -13,15 +13,15 @@ import net.minecraft.client.render.texture.stitcher.TextureRegistry;
 import net.minecraft.client.render.texturepack.TexturePackCustom;
 import net.minecraft.core.util.collection.NamespaceID;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.io.UncheckedIOException;
+import java.io.*;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
 
 import static deus.btd.Main.LOGGER;
 import static deus.btd.Main.MOD_ID;
@@ -31,6 +31,7 @@ public class ProjectResources implements Closeable {
 	private final ZipResources zipResources;
 	protected boolean assets;
 	protected boolean data;
+	protected boolean recipes;
 	protected boolean emptyData;
 	protected ProjectDataCache cache;
 	protected String name;
@@ -42,6 +43,7 @@ public class ProjectResources implements Closeable {
 		this.originalZipPath = projectPath;
 		this.zipResources = new ZipResources(FileSystems.newFileSystem(projectPath, (ClassLoader) null)) {};
 		assets = zipResources.existsFolder("/assets");
+		recipes = zipResources.existsFolder("/recipes");
 		data = zipResources.existsFolder("/data");
 		emptyData = data && zipResources.isEmpty("/data");
 		cache = new ProjectDataCache();
@@ -113,58 +115,56 @@ public class ProjectResources implements Closeable {
 		zipResources.close();
 	}
 
-	private static boolean validateAtom(Object atom, String type) {
-		String name = null;
-		int formatVersion = 0;
-		Object textures = null;
 
-		if (atom instanceof CompiledItem) {
-			CompiledItem item = (CompiledItem) atom;
-			name = item.data.name;
-			formatVersion = item.meta.formatVersion;
-			textures = item.textures;
-		} else if (atom instanceof CompiledBlock) {
-			CompiledBlock block = (CompiledBlock) atom;
-			name = block.data.name;
-			formatVersion = block.meta.formatVersion;
-			textures = block.textures;
+	// Don't ask about it...
+	public void loadTextures() {
+		if (!assets) return;
+
+		try {
+			File tempZip = File.createTempFile(this.getName(), ".zip");
+			tempZip.deleteOnExit();
+
+			try (ZipFile originalZip = new ZipFile(originalZipPath.toFile());
+				 ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(tempZip))) {
+
+				Enumeration<? extends ZipEntry> entries = originalZip.entries();
+				while (entries.hasMoreElements()) {
+					ZipEntry entry = entries.nextElement();
+
+					if (entry.getName().startsWith("assets/")) {
+						ZipEntry newEntry = new ZipEntry(entry.getName());
+						zos.putNextEntry(newEntry);
+
+						try (InputStream is = originalZip.getInputStream(entry)) {
+							byte[] buffer = new byte[4096];
+							int len;
+							while ((len = is.read(buffer)) > 0) {
+								zos.write(buffer, 0, len);
+							}
+						}
+
+						zos.closeEntry();
+					}
+				}
+			}
+
+			texturesPack = new TexturePackCustom(tempZip);
+			texturesPack.readZipFile();
+			texturesPack.readTexturePackManifest();
+			LOGGER.info("Loaded texturepack from atompack successfully");
+
+			Minecraft.getMinecraft().texturePackList.selectedPacks.add(texturesPack);
+
+		} catch (IOException e) {
+			LOGGER.error("Failed to load texture pack", e);
 		}
-
-		if (formatVersion != AtomCompiler.AtomFormatVersion) {
-			LOGGER.warn("Wrong format version for {} atom. Skipping.", type);
-			return false;
-		}
-
-		if (name == null) {
-			LOGGER.warn("Encountered {} atom without a name. Skipping.", type);
-			return false;
-		}
-
-		if (textures == null) {
-			LOGGER.warn("{} atom '{}' has no textures table. Skipping.",
-				type.substring(0, 1).toUpperCase() + type.substring(1), name);
-			return false;
-		}
-
-		return true;
 	}
 
 
+	public void loadDatapack() {
+		if (recipes) {
+			AtomLoader.loadDatapack(getName(), this.zipResources);
 
-	public void loadTextures() {
-		if (assets) {
-			File datapackZip = originalZipPath.toFile();
-			texturesPack = new TexturePackCustom(datapackZip);
-			texturesPack.readZipFile();
-
-			try {
-				texturesPack.readTexturePackManifest();
-				LOGGER.info("Loaded texturepack from atompack succefully");
-			} catch (IOException e) {
-				LOGGER.error("Failed to read texture pack manifest", e);
-			}
-
-			Minecraft.getMinecraft().texturePackList.selectedPacks.add(texturesPack);
 		}
 
 	}

@@ -1,16 +1,25 @@
 package deus.btd.toml;
 
+import com.b100.utils.StringUtils;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import deus.btd.toml.project.ProjectProcessed;
 import deus.btd.toml.project.ProjectResources;
 import deus.btd.toml.types.*;
 import deus.btd.utils.ConfigManager;
+import deus.btd.utils.ZipResources;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.block.Block;
+import net.minecraft.core.data.DataLoader;
+import net.minecraft.core.data.registry.Registries;
 import net.minecraft.core.item.Item;
 import org.tomlj.Toml;
 import org.tomlj.TomlParseResult;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,6 +27,8 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import static deus.btd.Main.*;
 import static deus.btd.utils.ConfigManager.configBlockIDsFromNames;
@@ -109,6 +120,7 @@ public class AtomLoader {
 
 
 			for (CompiledBlock atom : compiledBlocks) {
+				if (AtomCompiler.isValidBlockAtom(atom)) continue;
 				blocks.add(AtomCompiler.convertIntoBlocks(atom));
 			}
 
@@ -150,6 +162,7 @@ public class AtomLoader {
 
 
 			for (CompiledItem atom : compiledItems) {
+				if (AtomCompiler.isValidItemAtom(atom)) continue;
 				items.add(AtomCompiler.convertIntoItem(atom));
 			}
 
@@ -202,5 +215,68 @@ public class AtomLoader {
 		}));
 		return projects;
 	}
+
+	public static void loadDatapack(String name, ZipResources resources) {
+		LOGGER.info("Loading data from {}", name);
+
+		Path manifestPath = resources.get("recipes/manifest.json");
+		if (!Files.exists(manifestPath)) {
+			LOGGER.warn("manifest.json not found in {}", name);
+			return;
+		}
+
+		try (InputStream is = Files.newInputStream(manifestPath);
+			 InputStreamReader reader = new InputStreamReader(is, "UTF-8")) {
+
+			Gson gson = new Gson();
+			TypeToken<Map<String, List<String>>> token = new TypeToken<Map<String, List<String>>>() {};
+			Map<String, List<String>> map = gson.fromJson(reader, token);
+
+			List<String> recipeFiles = map.get("added_recipes");
+			List<String> groupFiles = map.get("added_item_groups");
+			List<String> removedRecipes = map.get("removed_recipes");
+
+			// --- Remove recipes ---
+			if (removedRecipes != null && !removedRecipes.isEmpty()) {
+				for (String removedRecipe : removedRecipes) {
+					String[] deconstructedKey = Registries.RECIPES.deconstructKey(removedRecipe);
+					Registries.RECIPES.getGroupFromKey(removedRecipe).unregister(deconstructedKey[2]);
+				}
+				LOGGER.info("Removed {} recipes", removedRecipes.size());
+			}
+
+			// --- Load item groups ---
+			if (groupFiles != null && !groupFiles.isEmpty()) {
+				for (String groupFile : groupFiles) {
+					Path groupFilePath = resources.get("recipes/" + groupFile);
+					if (Files.exists(groupFilePath)) {
+						try (InputStream groupIs = Files.newInputStream(groupFilePath)) {
+							String contents = StringUtils.readInputString(groupIs);
+							LOGGER.info("Loading item groups from {}/{}", name, groupFile);
+							DataLoader.loadItemGroupsFromString(contents);
+						}
+					}
+				}
+			}
+
+			// --- Load recipes ---
+			if (recipeFiles != null && !recipeFiles.isEmpty()) {
+				for (String recipeFile : recipeFiles) {
+					Path recipePath = resources.get("recipes/ " + recipeFile);
+					if (Files.exists(recipePath)) {
+						try (InputStream recipeIs = Files.newInputStream(recipePath)) {
+							String contents = StringUtils.readInputString(recipeIs);
+							LOGGER.info("Loading recipes from {}/{}", name, recipeFile);
+							DataLoader.loadRecipesFromString(contents);
+						}
+					}
+				}
+			}
+
+		} catch (IOException e) {
+			LOGGER.error("Failed to load data from {}", name, e);
+		}
+	}
+
 
 }

@@ -12,11 +12,15 @@ import java.util.List;
 public class CompiledBlock extends CompiledAtom implements IHasLang {
 
 	public Data data;
-	public Sounds sounds;
-	public Physics physics;
-	public Render render;
 	public Textures textures;
+	@Nullable
+	public Sounds sounds;
+	@Nullable
 	public Flammability flammability;
+	@Nullable
+	public Render render;
+	@Nullable
+	public Physics physics;
 	@Nullable public Events events;
 	@Nullable public Recipe recipe;
 	@Nullable public Model model;
@@ -38,6 +42,7 @@ public class CompiledBlock extends CompiledAtom implements IHasLang {
 	@DeserializeToml
 	public static class Data {
 		public String name;
+		@Nullable
 		public List<String> tags;
 		public boolean immovable;
 		public boolean unbreakable;

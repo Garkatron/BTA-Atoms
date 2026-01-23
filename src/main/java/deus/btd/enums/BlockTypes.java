@@ -16,7 +16,7 @@ public enum BlockTypes {
 
 	FURNACE(
 		ctx -> new BlockLogicFurnace(ctx.block, false),
-		ctx -> new BlockModelStandard(ctx.block)
+		ctx -> new BlockModelFurnace(ctx.block)
 	),
 
 	BLAST_FURNACE(
@@ -42,6 +42,11 @@ public enum BlockTypes {
 	CHEST(
 		ctx -> new BlockLogicChest(ctx.block, ctx.material),
 		ctx -> new BlockModelChest(ctx.block, ctx.rootKey)
+	),
+
+	SLAB(
+		ctx -> new BlockLogicSlab(ctx.block, ctx.modelBlock),
+		ctx -> new BlockModelSlab(ctx.block)
 	);
 
 	@FunctionalInterface
