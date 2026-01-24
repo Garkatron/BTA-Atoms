@@ -1,8 +1,11 @@
-package deus.btd.toml;
+package deus.btd.pipeline.project;
 
 
-import deus.btd.toml.types.AtomType;
+import deus.btd.pipeline.compile.types.AtomType;
+import net.minecraft.client.Minecraft;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
@@ -15,4 +18,5 @@ public class AtomDataCache {
 			ATOMS = null;
 		}
 	}
+
 }

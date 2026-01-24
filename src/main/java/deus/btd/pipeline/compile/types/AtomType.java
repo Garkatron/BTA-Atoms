@@ -1,10 +1,12 @@
-package deus.btd.toml.types;
+package deus.btd.pipeline.compile.types;
 
 import java.util.Arrays;
 
 public enum AtomType {
 	BLOCK(".block.atom"),
 	ITEM(".item.atom"),
+	BIOME(".biome.atom"),
+	WEATHER(".wheather.atom"),
 	PROJECT(".project.zip");
 
 	private final String suffix;

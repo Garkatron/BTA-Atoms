@@ -3,11 +3,14 @@ package deus.btd;
 import deus.btd.interfaces.IHasLang;
 import deus.btd.mixin.I18nAccessor;
 import deus.btd.mixin.LanguageAccessor;
-import deus.btd.toml.AtomLoader;
-import deus.btd.toml.project.ProjectProcessed;
-import deus.btd.toml.types.CompiledBlock;
-import deus.btd.toml.types.CompiledItem;
-import deus.btd.toml.types.fields.Lang;
+import deus.btd.pipeline.io.AtomPaths;
+import deus.btd.pipeline.io.AtomProjectLoader;
+import deus.btd.pipeline.project.AtomDataCache;
+import deus.btd.pipeline.project.ProjectProcessed;
+import deus.btd.pipeline.compile.types.CompiledBlock;
+import deus.btd.pipeline.compile.types.CompiledItem;
+import deus.btd.pipeline.compile.types.fields.Lang;
+import deus.btd.pipeline.project.ProjectProcessor;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.block.Block;
@@ -37,7 +40,7 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 		LOGGER.info("Initialization started.");
 
 		try {
-			AtomLoader.createFolders();
+			AtomPaths.createFolders();
 
 			LOGGER.info("Creating folders.");
 		} catch (IOException e) {
@@ -46,8 +49,9 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 		}
 
 		LOGGER.info("Processing projects.");
-		AtomLoader.deletePreviousConfig();
-		PROJECTS = AtomLoader.processProjects(AtomLoader.loadProjects(AtomLoader.ATOMS_FILES_PATH));
+		AtomPaths.deletePreviousConfig();
+		PROJECTS = ProjectProcessor.processProjects(AtomProjectLoader.loadProjects(AtomPaths.DATA));
+
 
 	}
 

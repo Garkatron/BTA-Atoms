@@ -1,18 +1,11 @@
-package deus.btd.toml.project;
+package deus.btd.pipeline.project;
 
-import deus.btd.mixin.AtlasStitcherAccessor;
 import deus.btd.mixin.TexturePackCustomAccessor;
-import deus.btd.toml.AtomCompiler;
-import deus.btd.toml.AtomLoader;
-import deus.btd.toml.types.AtomType;
-import deus.btd.toml.types.CompiledAtomProjectHeader;
-import deus.btd.toml.types.CompiledBlock;
-import deus.btd.toml.types.CompiledItem;
-import deus.btd.utils.ZipResources;
+import deus.btd.pipeline.compile.types.AtomType;
+import deus.btd.pipeline.compile.types.CompiledAtomProjectHeader;
+import deus.btd.pipeline.io.ZipResources;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.render.texture.stitcher.TextureRegistry;
 import net.minecraft.client.render.texturepack.TexturePackCustom;
-import net.minecraft.core.util.collection.NamespaceID;
 
 import java.io.*;
 import java.nio.file.FileSystems;
@@ -25,9 +18,8 @@ import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 import static deus.btd.Main.LOGGER;
-import static deus.btd.Main.MOD_ID;
 
-public class ProjectResources implements Closeable {
+public class ProjectResourcesCopy implements Closeable {
 
 	private final ZipResources zipResources;
 	protected boolean assets;
@@ -40,7 +32,7 @@ public class ProjectResources implements Closeable {
 	public TexturePackCustom texturesPack;
 	private final Path originalZipPath;
 
-	public ProjectResources(Path projectPath) throws Exception {
+	public ProjectResourcesCopy(Path projectPath) throws Exception {
 		this.originalZipPath = projectPath;
 		this.zipResources = new ZipResources(FileSystems.newFileSystem(projectPath, (ClassLoader) null)) {};
 		assets = zipResources.existsFolder("/assets");
@@ -49,7 +41,7 @@ public class ProjectResources implements Closeable {
 		emptyData = data && zipResources.isEmpty("/data");
 		cache = new ProjectDataCache();
 
-		header = AtomLoader.loadAtomProjectHeader(zipResources.get("manifest.atom"));
+		header = AtomDataCache.AtomLoader.loadAtomProjectHeader(zipResources.get("manifest.atom"));
 		name = header.data.name;
 
 		cache.ATOMS = loadAtoms();
@@ -99,7 +91,7 @@ public class ProjectResources implements Closeable {
 				.filter(p -> p.getFileName().toString().endsWith(".atom"))
 				.forEach(atomFile -> {
 					try {
-						AtomLoader.processAtomFile(name, atomFile, compiledAtoms);
+						AtomDataCache.AtomLoader.processAtomFile(name, atomFile, compiledAtoms);
 					} catch (Exception e) {
 						LOGGER.error("Failed to load atom file: {}", atomFile, e);
 					}
@@ -169,10 +161,12 @@ public class ProjectResources implements Closeable {
 
 	public void loadDatapack() {
 		if (recipes) {
-			AtomLoader.loadDatapack(getName(), this.zipResources);
-
+			AtomDataCache.AtomLoader.loadDatapack(getName(), this.zipResources);
 		}
+	}
 
+	public void loadBiomes() {
+		cache.ATOMS.get(AtomType.BIOME).forEach();
 	}
 
 }

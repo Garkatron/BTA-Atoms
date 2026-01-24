@@ -1,4 +1,4 @@
-package deus.btd.toml;
+package deus.btd.pipeline.io;
 
 import deus.btd.annotations.DeserializeToml;
 

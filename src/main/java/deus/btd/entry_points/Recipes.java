@@ -1,11 +1,10 @@
 package deus.btd.entry_points;
 
 import deus.btd.Main;
-import deus.btd.toml.AtomCompiler;
-import deus.btd.toml.project.ProjectProcessed;
-import deus.btd.toml.types.AtomType;
-import deus.btd.toml.types.CompiledBlock;
-import deus.btd.toml.types.CompiledItem;
+import deus.btd.pipeline.project.ProjectProcessed;
+import deus.btd.pipeline.compile.types.AtomType;
+import deus.btd.pipeline.compile.types.CompiledBlock;
+import deus.btd.pipeline.compile.types.CompiledItem;
 import net.minecraft.core.block.Blocks;
 import net.minecraft.core.data.registry.Registries;
 import net.minecraft.core.data.registry.recipe.RecipeNamespace;
@@ -21,7 +20,7 @@ import java.util.List;
 
 import static deus.btd.Main.LOGGER;
 import static deus.btd.Main.MOD_ID;
-import static deus.btd.toml.AtomLoader.formatAtomKey;
+import static deus.btd.pipeline.project.AtomDataCache.AtomLoader.formatAtomKey;
 import static deus.btd.utils.ConfigManager.blockGoc;
 import static deus.btd.utils.ConfigManager.itemGoc;
 

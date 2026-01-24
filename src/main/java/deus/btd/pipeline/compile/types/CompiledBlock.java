@@ -1,9 +1,9 @@
-package deus.btd.toml.types;
+package deus.btd.pipeline.compile.types;
 
 import deus.btd.annotations.DeserializeToml;
 import deus.btd.interfaces.IHasLang;
-import deus.btd.toml.types.fields.Lang;
-import deus.btd.toml.types.fields.Recipe;
+import deus.btd.pipeline.compile.types.fields.Lang;
+import deus.btd.pipeline.compile.types.fields.Recipe;
 
 import javax.annotation.Nullable;
 import java.util.List;

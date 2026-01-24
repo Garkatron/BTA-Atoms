@@ -1,7 +1,7 @@
-package deus.btd.toml.project;
+package deus.btd.pipeline.project;
 
 
-import deus.btd.toml.types.AtomType;
+import deus.btd.pipeline.compile.types.AtomType;
 
 import java.util.List;
 import java.util.Map;

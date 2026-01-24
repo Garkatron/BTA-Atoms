@@ -1,4 +1,4 @@
-package deus.btd.toml.types;
+package deus.btd.pipeline.compile.types;
 
 import deus.btd.annotations.DeserializeToml;
 

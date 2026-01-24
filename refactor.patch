@@ -1,0 +1,3757 @@
+Index: src/main/java/deus/btd/utils/ZipResources.java
+===================================================================
+diff --git a/src/main/java/deus/btd/utils/ZipResources.java b/src/main/java/deus/btd/utils/ZipResources.java
+deleted file mode 100644
+--- a/src/main/java/deus/btd/utils/ZipResources.java
++++ /dev/null
+@@ -1,83 +0,0 @@
+-package deus.btd.utils;
+-
+-import javax.imageio.ImageIO;
+-import java.awt.image.BufferedImage;
+-import java.io.Closeable;
+-import java.io.IOException;
+-import java.io.InputStream;
+-import java.nio.file.FileSystem;
+-import java.nio.file.Files;
+-import java.nio.file.Path;
+-import java.util.stream.Stream;
+-
+-public abstract class ZipResources implements Closeable {
+-
+-	protected final FileSystem fs;
+-
+-	public ZipResources(FileSystem fs) {
+-		this.fs = fs;
+-	}
+-
+-	public Path get(String path) {
+-		return fs.getPath(path);
+-	}
+-
+-	public boolean exists(String path) {
+-		return Files.exists(get(path));
+-	}
+-
+-	public Stream<Path> list(String path) throws IOException {
+-		return Files.list(get(path));
+-	}
+-
+-	public boolean existsFolder(String path) throws IOException {
+-		Path p = get(path);
+-		if (!Files.exists(p)) return false;
+-		return Files.isDirectory(p);
+-	}
+-
+-
+-	@Override
+-	public void close() throws IOException {
+-		fs.close();
+-	}
+-
+-	public boolean isEmpty(String path) throws IOException {
+-		try (Stream<Path> s = list(path)) {
+-			return !s.findAny().isPresent();
+-		}
+-	}
+-
+-	public Path extractTemp(String zipPath) throws IOException {
+-		Path tempFile = Files.createTempFile("zip_texture_", ".png");
+-		try (InputStream is = getInputStreamFromZip(zipPath)) {
+-			Files.copy(is, tempFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+-		}
+-		return tempFile;
+-	}
+-
+-	public InputStream getInputStreamFromZip(String zipPath) throws IOException {
+-		Path p = get(zipPath);
+-		if (!Files.exists(p)) {
+-			throw new IOException("File not found in ZIP: " + zipPath);
+-		}
+-		return Files.newInputStream(p);
+-	}
+-
+-	public BufferedImage readImage(String zipPath) throws IOException {
+-		try (InputStream is = getInputStreamFromZip(zipPath)) {
+-			return ImageIO.read(is);
+-		}
+-	}
+-
+-
+-	public BufferedImage readImageSafe(String zipPath) {
+-		try {
+-			return readImage(zipPath);
+-		} catch (IOException e) {
+-			return null;
+-		}
+-	}
+-
+-}
+-
+Index: src/main/java/deus/btd/blocks/AtomBlockLogic.java
+===================================================================
+diff --git a/src/main/java/deus/btd/blocks/AtomBlockLogic.java b/src/main/java/deus/btd/blocks/AtomBlockLogic.java
+--- a/src/main/java/deus/btd/blocks/AtomBlockLogic.java
++++ b/src/main/java/deus/btd/blocks/AtomBlockLogic.java
+@@ -1,7 +1,7 @@
+ package deus.btd.blocks;
+ 
+ import deus.btd.Main;
+-import deus.btd.toml.types.CompiledBlock;
++import deus.btd.pipeline.compile.types.CompiledBlock;
+ import net.minecraft.core.block.Block;
+ import net.minecraft.core.block.BlockLogic;
+ import net.minecraft.core.block.entity.TileEntity;
+Index: src/main/java/deus/btd/pipeline/build/ItemFactory.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/build/ItemFactory.java b/src/main/java/deus/btd/pipeline/build/ItemFactory.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/build/ItemFactory.java
+@@ -0,0 +1,98 @@
++package deus.btd.pipeline.build;
++
++import deus.btd.Main;
++import deus.btd.items.AtomItem;
++import deus.btd.pipeline.compile.types.CompiledItem;
++import deus.btd.utils.EnumUtils;
++import net.minecraft.core.data.tag.Tag;
++import net.minecraft.core.item.Item;
++import net.minecraft.core.item.ItemFood;
++import net.minecraft.core.item.material.ToolMaterial;
++import net.minecraft.core.item.tool.*;
++
++import java.util.ArrayList;
++import java.util.HashMap;
++import java.util.List;
++import java.util.Map;
++
++import static deus.btd.Main.MOD_ID;
++import static deus.btd.pipeline.io.AtomTomlUtils.formatAtomKey;
++import static deus.btd.utils.ConfigManager.itemGoc;
++
++public class ItemFactory {
++	public static Item build(CompiledItem atom) {
++		ToolMaterial materialObject = EnumUtils.TOOL_MATERIALS.getOrDefault(atom.data.material.toUpperCase(), ToolMaterial.wood);
++
++		// ! BUILDING
++		String key = formatAtomKey(atom.meta.author, atom.data.name);
++
++
++		Main.LOGGER.debug("Creating block '{}' with key '{}'.", atom.data.name, key);
++
++		Item item;
++
++		if (atom.tool != null) {
++			switch (atom.tool.type.toUpperCase()) {
++				case "AXE":
++					item = new ItemToolAxe(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key), materialObject);
++					break;
++				case "SWORD":
++					item = new ItemToolSword(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key), materialObject);
++					break;
++				case "PICKAXE":
++					item = new ItemToolPickaxe(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key), materialObject);
++					break;
++				case "SHOVEL":
++					item = new ItemToolShovel(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key), materialObject);
++					break;
++				case "SHEARS":
++					item = new ItemToolShears(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key), materialObject);
++					break;
++				case "HOE":
++					item = new ItemToolHoe(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key), materialObject);
++					break;
++				case "DEFAULT":
++				default:
++					item = new AtomItem(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key));
++					break;
++			}
++		} else if (atom.food != null) {
++			item = new ItemFood(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key), atom.food.healAmount, atom.food.ticksPerHeal, atom.food.favouriteWolfMeat, atom.data.maxStackSize);
++		} else {
++			item = new AtomItem(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key));
++		}
++
++		if (atom.data.tags != null) {
++			List<Tag<Item>> tags = new ArrayList<>();
++			for (String tag : atom.data.tags) {
++				Tag<Item> t = EnumUtils.ITEM_TAGS.get(tag);
++				if (t != null) {
++					tags.add(t);
++				}
++			}
++			if (!tags.isEmpty()) {
++				item.withTags(tags.toArray(new Tag[0]));
++			}
++		}
++
++		return item;
++
++	}
++
++	public static Map<String, Item> build(List<CompiledItem> items) {
++		Map<String, Item> result = new HashMap<>();
++
++		if (items == null || items.isEmpty()) return result;
++
++		for (CompiledItem atom : items) {
++			try {
++				Item item = build(atom);
++				result.put(item.namespaceID.toString(), item);
++			} catch (Exception e) {
++				Main.LOGGER.error("Failed to build block '{}'", atom.data.name, e);
++			}
++		}
++
++		return result;
++	}
++}
+Index: src/main/java/deus/btd/pipeline/build/BlockFactory.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/build/BlockFactory.java b/src/main/java/deus/btd/pipeline/build/BlockFactory.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/build/BlockFactory.java
+@@ -0,0 +1,144 @@
++package deus.btd.pipeline.build;
++
++import deus.btd.Main;
++import deus.btd.blocks.AtomBlockLogic;
++import deus.btd.enums.BlockTypes;
++import deus.btd.pipeline.compile.types.CompiledBlock;
++import deus.btd.utils.EnumUtils;
++import net.minecraft.core.block.Block;
++import net.minecraft.core.block.BlockLogic;
++import net.minecraft.core.block.Blocks;
++import net.minecraft.core.block.material.Material;
++import net.minecraft.core.data.tag.Tag;
++import net.minecraft.core.sound.BlockSound;
++import net.minecraft.core.sound.BlockSounds;
++import turniplabs.halplibe.helper.BlockBuilder;
++
++import java.util.Collections;
++import java.util.HashMap;
++import java.util.List;
++import java.util.Map;
++
++import static deus.btd.pipeline.io.AtomTomlUtils.formatAtomKey;
++import static deus.btd.pipeline.project.AtomDataCache.AtomLoader.formatAtomKey;
++import static deus.btd.utils.ConfigManager.blockGoc;
++
++public final class BlockFactory {
++
++	public static Block<?> build(CompiledBlock atom) {
++		Material materialObject = EnumUtils.MATERIALS.getOrDefault(
++			atom.data.material.toUpperCase(),
++			Material.wood
++		);
++
++		BlockSound blockSoundObject = EnumUtils.BLOCK_SOUNDS.getOrDefault(
++			atom.sounds.sound,
++			BlockSounds.STONE
++		);
++
++		BlockTypes blockType = BlockTypes.fromString(atom.logic != null ? atom.logic.type : null);
++
++		String key = formatAtomKey(atom.meta.author, atom.data.name);
++
++		Main.LOGGER.debug("Creating block '{}' with type '{}' and key '{}'.",
++			atom.data.name, blockType.name(), key);
++
++		BlockBuilder builder = createBlockBuilder(atom, blockSoundObject);
++
++		addBlockTags(builder, atom.data.tags);
++
++		return builder.build(
++			atom.lang.key,
++			atom.data.name,
++			blockGoc(key),
++			block -> createBlockLogic(block, blockType, materialObject, atom)
++		);
++	}
++
++	public static Map<String, Block<?>> build(List<CompiledBlock> blocks) {
++		Map<String, Block<?>> result = new HashMap<>();
++
++		if (blocks == null || blocks.isEmpty()) return result;
++
++		for (CompiledBlock atom : blocks) {
++			try {
++				Block<?> block = build(atom);
++				result.put(block.namespaceId().toString(), block);
++			} catch (Exception e) {
++				Main.LOGGER.error("Failed to build block '{}'", atom.data.name, e);
++			}
++		}
++
++		return result;
++	}
++
++	private static BlockBuilder createBlockBuilder(CompiledBlock atom, BlockSound blockSound) {
++		BlockBuilder builder = new BlockBuilder(atom.Namespace())
++			.setBlockSound(blockSound)
++			.setHardness((float) atom.data.hardness)
++			.setSlipperiness((float) atom.data.slipperiness)
++			.setResistance((float) atom.data.resistance);
++
++		if (atom.flammability != null) builder.setFlammability(atom.flammability.chanceToCatchFire, atom.flammability.changeToDegrade);
++
++		return builder;
++	}
++
++	private static void addBlockTags(BlockBuilder builder, List<String> tags) {
++		if (tags != null) {
++			for (String tag : tags) {
++				Tag<Block<?>> blockTag = EnumUtils.BLOCK_TAGS.get(tag);
++				if (blockTag != null) {
++					builder.addTags(blockTag);
++				}
++			}
++		}
++	}
++
++	private static BlockLogic createBlockLogic(
++		Block<?> block,
++		BlockTypes blockType,
++		Material material,
++		CompiledBlock atom
++	) {
++		block.withLightEmission((float) atom.data.luminance);
++
++		if (atom.data.unbreakable) {
++			block.withSetUnbreakable();
++		}
++
++		if (atom.data.immovable) {
++			block.withImmovableFlagSet();
++		}
++
++		Block<?> baseModel = null;
++		if (atom.model != null && atom.model.baseBlockId >= 1) {
++			baseModel = Blocks.getBlock(atom.model.baseBlockId);
++		}
++
++		// TODO: FIX THIS SHIT
++		BlockTypes.BlockContext ctx = BlockTypes.BlockContext.of(block)
++			.withMaterial(material)
++			.withModelBlock(baseModel);
++
++		if (atom.model != null && atom.model.rootKey != null && !atom.model.rootKey.trim().isEmpty()) {
++			ctx.withRootKey(atom.model.rootKey);
++		}
++
++		if (blockType == BlockTypes.DEFAULT) {
++			return new AtomBlockLogic(
++				block,
++				material,
++				atom.render == null || atom.render.isCubeShaped,
++				atom.physics == null || atom.physics.isCollidable,
++				atom.render == null || atom.render.isSolidRender,
++				atom.events == null || atom.events.onBreak.dropItself,
++				atom.events != null ? atom.events.onBreak.drops : Collections.emptyList()
++			);
++
++		}
++
++		return blockType.createLogic(ctx);
++	}
++
++}
+Index: src/main/java/deus/btd/pipeline/toml/AtomTomlLoader.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/toml/AtomTomlLoader.java b/src/main/java/deus/btd/pipeline/toml/AtomTomlLoader.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/toml/AtomTomlLoader.java
+@@ -0,0 +1,20 @@
++package deus.btd.pipeline.toml;
++
++import deus.btd.pipeline.io.AtomTomlDeserializer;
++import org.tomlj.Toml;
++import org.tomlj.TomlParseResult;
++
++import java.io.IOException;
++import java.nio.file.Files;
++import java.nio.file.Path;
++
++public final class AtomTomlLoader {
++
++	public static TomlParseResult load(Path path) throws IOException {
++		return Toml.parse(Files.readString(path));
++	}
++
++	public static <T> T loadAs(Path path, Class<T> type) throws Exception {
++		return AtomTomlDeserializer.fromToml(load(path), type);
++	}
++}
+Index: src/main/java/deus/btd/pipeline/project/AtomDataCache.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/project/AtomDataCache.java b/src/main/java/deus/btd/pipeline/project/AtomDataCache.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/project/AtomDataCache.java
+@@ -0,0 +1,22 @@
++package deus.btd.pipeline.project;
++
++
++import deus.btd.pipeline.compile.types.AtomType;
++import net.minecraft.client.Minecraft;
++
++import java.nio.file.Path;
++import java.nio.file.Paths;
++import java.util.List;
++import java.util.Map;
++
++public class AtomDataCache {
++	public static Map<AtomType, List<?>> ATOMS = null;
++
++	public static void clear() {
++		if (ATOMS != null) {
++			ATOMS.clear();
++			ATOMS = null;
++		}
++	}
++
++}
+Index: src/main/java/deus/btd/pipeline/project/ProjectDataCache.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/project/ProjectDataCache.java b/src/main/java/deus/btd/pipeline/project/ProjectDataCache.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/project/ProjectDataCache.java
+@@ -0,0 +1,19 @@
++package deus.btd.pipeline.project;
++
++
++import deus.btd.pipeline.compile.types.AtomType;
++
++import java.util.List;
++import java.util.Map;
++
++public class ProjectDataCache {
++	public Map<AtomType, List<?>> ATOMS = null;
++
++	public void clear() {
++		if (ATOMS != null) {
++			ATOMS.clear();
++			ATOMS = null;
++		}
++	}
++
++}
+Index: src/main/java/deus/btd/pipeline/project/ProjectProcessed.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/project/ProjectProcessed.java b/src/main/java/deus/btd/pipeline/project/ProjectProcessed.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/project/ProjectProcessed.java
+@@ -0,0 +1,31 @@
++package deus.btd.pipeline.project;
++
++import net.minecraft.core.block.Block;
++import net.minecraft.core.item.Item;
++
++import java.util.*;
++
++public final class ProjectProcessed {
++
++	private final String name;
++	private final ProjectResources resources;
++	private final Map<String, Block<?>> blocks;
++	private final Map<String, Item> items;
++
++	public ProjectProcessed(
++		String name,
++		ProjectResources resources,
++		Map<String, Block<?>> blocks,
++		Map<String, Item> items
++	) {
++		this.name = name;
++		this.resources = resources;
++		this.blocks = new HashMap<>(blocks);
++		this.items = new HashMap<>(items);
++	}
++
++	public String name() { return name; }
++	public ProjectResources resources() { return resources; }
++	public Map<String, Block<?>> blocks() { return blocks; }
++	public Map<String, Item> items() { return items; }
++}
+Index: src/main/java/deus/btd/pipeline/project/ProjectProcessor.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/project/ProjectProcessor.java b/src/main/java/deus/btd/pipeline/project/ProjectProcessor.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/project/ProjectProcessor.java
+@@ -0,0 +1,51 @@
++package deus.btd.pipeline.project;
++
++import deus.btd.Main;
++import deus.btd.pipeline.build.BlockFactory;
++import deus.btd.pipeline.build.ItemFactory;
++import deus.btd.pipeline.compile.types.AtomType;
++import deus.btd.pipeline.compile.types.CompiledBlock;
++import deus.btd.pipeline.compile.types.CompiledItem;
++import deus.btd.pipeline.io.AtomProjectLoader;
++import deus.btd.pipeline.io.AtomTomlLoader;
++import deus.btd.pipeline.io.ZipResources;
++import net.minecraft.core.block.Block;
++import net.minecraft.core.item.Item;
++
++import java.io.IOException;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.util.ArrayList;
++import java.util.EnumMap;
++import java.util.List;
++import java.util.Map;
++import java.util.function.Function;
++import java.util.stream.Collectors;
++import java.util.stream.Stream;
++
++public class ProjectProcessor {
++
++	public static ProjectProcessed process(ProjectResources project) {
++
++		Map<AtomType, List<?>> atoms = AtomProjectLoader.loadAtomsFromProject(project);
++
++		Map<String, Block<?>> blocks =
++			BlockFactory.build((List<CompiledBlock>) atoms.get(AtomType.BLOCK));
++
++		Map<String, Item> items =
++			ItemFactory.build((List<CompiledItem>) atoms.get(AtomType.ITEM));
++
++		return new ProjectProcessed(
++			project.name(),
++			project,
++			blocks,
++			items
++		);
++	}
++
++	public static List<ProjectProcessed> processProjects(List<ProjectResources> projectResources) {
++		return projectResources.stream()
++			.map(ProjectProcessor::process)
++			.collect(Collectors.toList());
++	}
++}
+Index: src/main/java/deus/btd/pipeline/project/ProjectResources.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/project/ProjectResources.java b/src/main/java/deus/btd/pipeline/project/ProjectResources.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/project/ProjectResources.java
+@@ -0,0 +1,47 @@
++package deus.btd.pipeline.project;
++
++import deus.btd.mixin.TexturePackCustomAccessor;
++import deus.btd.pipeline.compile.types.AtomType;
++import deus.btd.pipeline.compile.types.CompiledAtomProjectHeader;
++import deus.btd.pipeline.io.AtomTomlLoader;
++import deus.btd.pipeline.io.ZipResources;
++import net.minecraft.client.Minecraft;
++import net.minecraft.client.render.texturepack.TexturePackCustom;
++
++import java.io.*;
++import java.nio.file.FileSystems;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.util.*;
++import java.util.stream.Stream;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipFile;
++import java.util.zip.ZipOutputStream;
++
++import static deus.btd.Main.LOGGER;
++
++public class ProjectResources implements Closeable {
++
++	private final ZipResources zip;
++	private final Path originalZipPath;
++	private final CompiledAtomProjectHeader header;
++
++	public ProjectResources(Path projectPath) throws Exception {
++		this.zip = new ZipResources(FileSystems.newFileSystem(projectPath, (ClassLoader) null)) {};
++		this.originalZipPath = projectPath;
++		this.header = AtomTomlLoader.loadProjectHeader(zip.get("manifest.atom"));
++	}
++
++	public String name() {
++		return header.data.name;
++	}
++
++	public ZipResources zip() {
++		return zip;
++	}
++
++	@Override
++	public void close() throws IOException {
++		zip.close();
++	}
++}
+Index: src/main/java/deus/btd/pipeline/project/ProjectResourcesCopy.old
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/project/ProjectResourcesCopy.old b/src/main/java/deus/btd/pipeline/project/ProjectResourcesCopy.old
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/project/ProjectResourcesCopy.old
+@@ -0,0 +1,172 @@
++package deus.btd.pipeline.project;
++
++import deus.btd.mixin.TexturePackCustomAccessor;
++import deus.btd.pipeline.compile.types.AtomType;
++import deus.btd.pipeline.compile.types.CompiledAtomProjectHeader;
++import deus.btd.pipeline.io.ZipResources;
++import net.minecraft.client.Minecraft;
++import net.minecraft.client.render.texturepack.TexturePackCustom;
++
++import java.io.*;
++import java.nio.file.FileSystems;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.util.*;
++import java.util.stream.Stream;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipFile;
++import java.util.zip.ZipOutputStream;
++
++import static deus.btd.Main.LOGGER;
++
++public class ProjectResourcesCopy implements Closeable {
++
++	private final ZipResources zipResources;
++	protected boolean assets;
++	protected boolean data;
++	protected boolean recipes;
++	protected boolean emptyData;
++	protected ProjectDataCache cache;
++	protected String name;
++	protected CompiledAtomProjectHeader header;
++	public TexturePackCustom texturesPack;
++	private final Path originalZipPath;
++
++	public ProjectResourcesCopy(Path projectPath) throws Exception {
++		this.originalZipPath = projectPath;
++		this.zipResources = new ZipResources(FileSystems.newFileSystem(projectPath, (ClassLoader) null)) {};
++		assets = zipResources.existsFolder("/assets");
++		recipes = zipResources.existsFolder("/recipes");
++		data = zipResources.existsFolder("/data");
++		emptyData = data && zipResources.isEmpty("/data");
++		cache = new ProjectDataCache();
++
++		header = AtomDataCache.AtomLoader.loadAtomProjectHeader(zipResources.get("manifest.atom"));
++		name = header.data.name;
++
++		cache.ATOMS = loadAtoms();
++	}
++
++	public String getName() {
++		return name;
++	}
++
++	protected Map<String, String> getTextures(Path fpath) {
++		Map<String, String> texturesMap = new HashMap<>();
++
++		try (Stream<Path> paths = Files.walk(fpath)) {
++			paths
++				.filter(Files::isRegularFile)
++				.forEach(path -> {
++					try {
++						byte[] bytes = Files.readAllBytes(path);
++						String encoded = Base64.getUrlEncoder().encodeToString(bytes);
++						texturesMap.put(path.toString(), encoded);
++					} catch (IOException e) {
++						throw new UncheckedIOException(e);
++					}
++				});
++		} catch (IOException | UncheckedIOException e) {
++			return null;
++		}
++
++		return texturesMap;
++	}
++
++	public Map<AtomType, List<?>> getAtoms() {
++		return cache.ATOMS;
++	}
++
++	protected Map<AtomType, List<?>> loadAtoms() {
++		Map<AtomType, List<?>> compiledAtoms = new HashMap<>();
++		if (!data || emptyData) return compiledAtoms;
++
++		for (AtomType type : AtomType.values()) {
++			compiledAtoms.put(type, new ArrayList<>());
++		}
++
++		try (Stream<Path> paths = Files.walk(zipResources.get("/data"))) {
++			paths
++				.filter(Files::isRegularFile)
++				.filter(p -> p.getFileName().toString().endsWith(".atom"))
++				.forEach(atomFile -> {
++					try {
++						AtomDataCache.AtomLoader.processAtomFile(name, atomFile, compiledAtoms);
++					} catch (Exception e) {
++						LOGGER.error("Failed to load atom file: {}", atomFile, e);
++					}
++				});
++		} catch (IOException | UncheckedIOException e) {
++			LOGGER.error("Failed to walk data folder", e);
++		}
++
++		return compiledAtoms;
++	}
++
++	@Override
++	public void close() throws IOException {
++		zipResources.close();
++	}
++
++
++	// Don't ask about it...
++	public void loadTextures() {
++		if (!assets) return;
++
++		try {
++			File tempZip = File.createTempFile(this.getName(), ".zip");
++			tempZip.deleteOnExit();
++
++			try (ZipFile originalZip = new ZipFile(originalZipPath.toFile());
++				 ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(tempZip))) {
++
++				Enumeration<? extends ZipEntry> entries = originalZip.entries();
++				while (entries.hasMoreElements()) {
++					ZipEntry entry = entries.nextElement();
++
++					if (entry.getName().startsWith("assets/")) {
++						ZipEntry newEntry = new ZipEntry(entry.getName());
++						zos.putNextEntry(newEntry);
++
++						try (InputStream is = originalZip.getInputStream(entry)) {
++							byte[] buffer = new byte[4096];
++							int len;
++							while ((len = is.read(buffer)) > 0) {
++								zos.write(buffer, 0, len);
++							}
++						}
++
++						zos.closeEntry();
++					}
++				}
++			}
++
++			texturesPack = new TexturePackCustom(tempZip);
++
++			if (this.zipResources.exists("assets/pack.png")) {
++				((TexturePackCustomAccessor)texturesPack).setThumbnailBuffer(this.zipResources.readImageSafe("assets/pack.png"));
++			}
++
++			texturesPack.readZipFile();
++			texturesPack.readTexturePackManifest();
++			LOGGER.info("Loaded texturepack from atompack successfully");
++
++			Minecraft.getMinecraft().texturePackList.selectedPacks.add(texturesPack);
++
++		} catch (IOException e) {
++			LOGGER.error("Failed to load texture pack", e);
++		}
++	}
++
++
++	public void loadDatapack() {
++		if (recipes) {
++			AtomDataCache.AtomLoader.loadDatapack(getName(), this.zipResources);
++		}
++	}
++
++	public void loadBiomes() {
++		cache.ATOMS.get(AtomType.BIOME).forEach();
++	}
++
++}
+Index: src/main/java/deus/btd/pipeline/io/mimics/BiomeMimic.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/io/mimics/BiomeMimic.java b/src/main/java/deus/btd/pipeline/io/mimics/BiomeMimic.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/io/mimics/BiomeMimic.java
+@@ -0,0 +1,10 @@
++package deus.btd.pipeline.io.mimics;
++
++import java.util.List;
++
++public class BiomeMimic {
++	protected List<SpawnListEntryMimic> spawnableMonsterList;
++	protected List<SpawnListEntryMimic> spawnableCreatureList;
++	protected List<SpawnListEntryMimic> spawnableWaterCreatureList;
++	protected List<SpawnListEntryMimic> spawnableAmbientCreatureList;
++}
+Index: src/main/java/deus/btd/pipeline/io/mimics/SpawnListEntryMimic.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/io/mimics/SpawnListEntryMimic.java b/src/main/java/deus/btd/pipeline/io/mimics/SpawnListEntryMimic.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/io/mimics/SpawnListEntryMimic.java
+@@ -0,0 +1,6 @@
++package deus.btd.pipeline.io.mimics;
++
++public class SpawnListEntryMimic {
++	public String entityClass;
++	public int spawnFrequency;
++}
+Index: src/main/java/deus/btd/pipeline/io/AtomPaths.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/io/AtomPaths.java b/src/main/java/deus/btd/pipeline/io/AtomPaths.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/io/AtomPaths.java
+@@ -0,0 +1,33 @@
++package deus.btd.pipeline.io;
++
++import deus.btd.pipeline.project.AtomDataCache;
++import net.minecraft.client.Minecraft;
++
++import java.io.IOException;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.nio.file.Paths;
++
++import static deus.btd.Main.LOGGER;
++
++public final class AtomPaths {
++    public static final Path ROOT = Paths.get(Minecraft.getMinecraft().getMinecraftDir().getPath(), "btd");
++    public static final Path DATA = ROOT.resolve("data");
++    public static final Path CONFIG = Paths.get(
++        Minecraft.getMinecraft().getMinecraftDir().getPath(),
++        "config/better_than_datapacks.cfg"
++    );
++
++
++	public static void createFolders() throws IOException {
++		Files.createDirectories(DATA);
++	}
++
++	public static void deletePreviousConfig() {
++		if (CONFIG.toFile().exists()) {
++			LOGGER.info("Deleting previous config.");
++			boolean result = AtomDataCache.AtomLoader.CONFIG_FILE_PATH.toFile().delete();
++			LOGGER.info("Deleted: {}", result);
++		}
++	}
++}
+Index: src/main/java/deus/btd/pipeline/io/ZipResources.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/io/ZipResources.java b/src/main/java/deus/btd/pipeline/io/ZipResources.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/io/ZipResources.java
+@@ -0,0 +1,83 @@
++package deus.btd.pipeline.io;
++
++import javax.imageio.ImageIO;
++import java.awt.image.BufferedImage;
++import java.io.Closeable;
++import java.io.IOException;
++import java.io.InputStream;
++import java.nio.file.FileSystem;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.util.stream.Stream;
++
++public abstract class ZipResources implements Closeable {
++
++	protected final FileSystem fs;
++
++	public ZipResources(FileSystem fs) {
++		this.fs = fs;
++	}
++
++	public Path get(String path) {
++		return fs.getPath(path);
++	}
++
++	public boolean exists(String path) {
++		return Files.exists(get(path));
++	}
++
++	public Stream<Path> list(String path) throws IOException {
++		return Files.list(get(path));
++	}
++
++	public boolean existsFolder(String path) throws IOException {
++		Path p = get(path);
++		if (!Files.exists(p)) return false;
++		return Files.isDirectory(p);
++	}
++
++
++	@Override
++	public void close() throws IOException {
++		fs.close();
++	}
++
++	public boolean isEmpty(String path) throws IOException {
++		try (Stream<Path> s = list(path)) {
++			return !s.findAny().isPresent();
++		}
++	}
++
++	public Path extractTemp(String zipPath) throws IOException {
++		Path tempFile = Files.createTempFile("zip_texture_", ".png");
++		try (InputStream is = getInputStreamFromZip(zipPath)) {
++			Files.copy(is, tempFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
++		}
++		return tempFile;
++	}
++
++	public InputStream getInputStreamFromZip(String zipPath) throws IOException {
++		Path p = get(zipPath);
++		if (!Files.exists(p)) {
++			throw new IOException("File not found in ZIP: " + zipPath);
++		}
++		return Files.newInputStream(p);
++	}
++
++	public BufferedImage readImage(String zipPath) throws IOException {
++		try (InputStream is = getInputStreamFromZip(zipPath)) {
++			return ImageIO.read(is);
++		}
++	}
++
++
++	public BufferedImage readImageSafe(String zipPath) {
++		try {
++			return readImage(zipPath);
++		} catch (IOException e) {
++			return null;
++		}
++	}
++
++}
++
+Index: src/main/java/deus/btd/pipeline/io/AtomTomlUtils.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/io/AtomTomlUtils.java b/src/main/java/deus/btd/pipeline/io/AtomTomlUtils.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/io/AtomTomlUtils.java
+@@ -0,0 +1,8 @@
++package deus.btd.pipeline.io;
++
++public class AtomTomlUtils {
++
++	public static String formatAtomKey(String author, String atomName) {
++		return (author + "_" + atomName).trim().replace(" ", "_");
++	}
++}
+Index: src/main/java/deus/btd/pipeline/io/AtomTomlLoader.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/io/AtomTomlLoader.java b/src/main/java/deus/btd/pipeline/io/AtomTomlLoader.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/io/AtomTomlLoader.java
+@@ -0,0 +1,161 @@
++package deus.btd.pipeline.io;
++
++import deus.btd.pipeline.compile.ItemCompiler;
++import deus.btd.pipeline.compile.types.*;
++import deus.btd.utils.ConfigManager;
++import net.minecraft.core.block.Block;
++import net.minecraft.core.item.Item;
++import org.tomlj.Toml;
++import org.tomlj.TomlParseResult;
++
++import java.io.IOException;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.util.ArrayList;
++import java.util.List;
++import java.util.Map;
++import java.util.Objects;
++import java.util.stream.Collectors;
++
++import static deus.btd.Main.LOGGER;
++import static deus.btd.Main.blocks;
++import static deus.btd.pipeline.io.AtomTomlUtils.formatAtomKey;
++import static deus.btd.utils.ConfigManager.configBlockIDsFromNames;
++import static deus.btd.utils.ConfigManager.configItemsIDsFromNames;
++
++public class AtomTomlLoader {
++	public static TomlParseResult loadToml(Path path) throws IOException {
++		List<String> lines = Files.readAllLines(path);
++		StringBuilder content = new StringBuilder();
++		for (String line : lines) {
++			content.append(line).append("\n");
++		}
++
++		TomlParseResult result = Toml.parse(content.toString());
++		return result;
++	}
++
++	public static void processAtomFile(String name, Path tomlFile, Map<AtomType, List<?>> compiledAtoms) throws Exception {
++		String fileName = tomlFile.getFileName().toString();
++		AtomType type = AtomType.fromFileName(fileName);
++		TomlParseResult tomlResult = loadToml(tomlFile);
++
++		switch (type) {
++			case BLOCK: {
++				CompiledBlock block = AtomTomlDeserializer.fromToml(tomlResult, CompiledBlock.class);
++				block.namespace = name;
++				((List<CompiledBlock>) compiledAtoms.get(AtomType.BLOCK))
++					.add(block);
++				break;
++			}
++			case ITEM: {
++				CompiledItem item = AtomTomlDeserializer.fromToml(tomlResult, CompiledItem.class);
++				item.namespace = name;
++				((List<CompiledItem>) compiledAtoms.get(AtomType.ITEM))
++					.add(item);
++				break;
++			}
++			case BIOME: {
++				CompiledBiome biome = AtomTomlDeserializer.fromToml(tomlResult, CompiledBiome.class);
++				biome.namespace = name;
++				((List<CompiledBiome>) compiledAtoms.get(AtomType.BIOME))
++					.add(biome);
++				break;
++			}
++			case WEATHER: {
++				CompiledWeather biome = AtomTomlDeserializer.fromToml(tomlResult, CompiledWeather.class);
++				biome.namespace = name;
++				((List<CompiledWeather>) compiledAtoms.get(AtomType.WEATHER))
++					.add(biome);
++				break;
++			}
++		}
++	}
++
++	public static CompiledAtomProjectHeader loadProjectHeader(Path tomlFile) throws Exception {
++		return AtomTomlDeserializer.fromToml(loadToml(tomlFile), CompiledAtomProjectHeader.class);
++	}
++
++
++
++
++
++
++	public static List<Block<?>> loadAtomBlocks(List<CompiledBlock> compiledBlocks) {
++		System.out.println(compiledBlocks.get(0).data);
++		List<Block<?>> blocks = new ArrayList<>();
++
++		try {
++
++			// CREATE ATOMS MOD CONFIG WITH ALL LOADED BLOCKS NAMES
++			List<String> keys = compiledBlocks.stream()
++				.map(atom -> {
++					String author = atom.meta != null && atom.meta.author != null ? atom.meta.author : "Unnamed";
++					String name = atom.data != null && atom.data.name != null ? atom.data.name : "UnnamedBlock";
++					return formatAtomKey(author, name);
++				})
++				.filter(Objects::nonNull)
++				.collect(Collectors.toList());
++
++
++			configBlockIDsFromNames(keys, ConfigManager.TOML);
++			ConfigManager.makeConfig();
++
++			// CREATING INSTANCES
++			LOGGER.info("Creating block instances for atoms...");
++
++
++			for (CompiledBlock atom : compiledBlocks) {
++				if (!AtomCompiler.isValidBlockAtom(atom)) continue;
++				blocks.add(AtomCompiler.convertIntoBlocks(atom));
++			}
++
++			LOGGER.info("Atom blocks successfully created: {}", blocks.size());
++
++		} catch (Exception e) {
++			LOGGER.error("Failed to initialize atoms.", e);
++			throw new RuntimeException(e);
++		}
++		return blocks;
++	}
++
++
++
++
++	public static List<Item> loadAtomItems(List<CompiledItem> compiledItems) {
++		List<Item> items = new ArrayList<>();
++
++		try {
++
++			// CREATE ATOMS MOD CONFIG WITH ALL LOADED BLOCKS NAMES
++			List<String> keys = compiledItems.stream()
++				.map(atom -> {
++					String author = atom.meta != null && atom.meta.author != null ? atom.meta.author : "Unnamed";
++					String name = atom.data != null && atom.data.name != null ? atom.data.name : "UnnamedItem";
++					return formatAtomKey(author, name);
++				})
++				.filter(Objects::nonNull)
++				.collect(Collectors.toList());
++
++
++			configItemsIDsFromNames(keys, ConfigManager.TOML);
++			ConfigManager.makeConfig();
++
++			// CREATING INSTANCES
++			LOGGER.info("Creating block instances for atoms...");
++
++
++			for (CompiledItem atom : compiledItems) {
++				if (!ItemCompiler.validate(atom)) continue;
++				items.add(ItemCompiler.build(atom));
++			}
++
++			LOGGER.info("Atom blocks successfully created: {}", blocks.size());
++
++		} catch (Exception e) {
++			LOGGER.error("Failed to initialize atoms.", e);
++			throw new RuntimeException(e);
++		}
++		return items;
++	}
++}
+Index: src/main/java/deus/btd/pipeline/io/AtomProjectLoader.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/io/AtomProjectLoader.java b/src/main/java/deus/btd/pipeline/io/AtomProjectLoader.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/io/AtomProjectLoader.java
+@@ -0,0 +1,136 @@
++package deus.btd.pipeline.io;
++
++import com.b100.utils.StringUtils;
++import com.google.gson.Gson;
++import com.google.gson.reflect.TypeToken;
++import deus.btd.Main;
++import deus.btd.pipeline.compile.types.AtomType;
++import deus.btd.pipeline.project.ProjectResources;
++import net.minecraft.core.data.DataLoader;
++import net.minecraft.core.data.registry.Registries;
++
++import java.io.IOException;
++import java.io.InputStream;
++import java.io.InputStreamReader;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.util.ArrayList;
++import java.util.EnumMap;
++import java.util.List;
++import java.util.Map;
++import java.util.stream.Stream;
++
++import static deus.btd.Main.LOGGER;
++
++public class AtomProjectLoader {
++	public static List<ProjectResources> loadProjects(Path folder) {
++		List<ProjectResources> projectResources = new ArrayList<>();
++		try (Stream<Path> paths = Files.walk(folder)) {
++			paths
++				.filter(Files::isRegularFile)
++				.filter(p -> p.getFileName().toString().endsWith(AtomType.PROJECT.suffix()))
++				.forEach(zip -> {
++					try {
++						projectResources.add(new ProjectResources(zip));
++					} catch (Exception e) {
++						LOGGER.error("Failed to load atom file: {}", zip, e);
++					}
++				});
++		} catch (IOException e) {
++			throw new RuntimeException(e);
++		}
++		return projectResources;
++	}
++	public static void loadDatapack(String name, ZipResources resources) {
++		LOGGER.info("Loading data from {}", name);
++
++		Path manifestPath = resources.get("recipes/manifest.json");
++		if (!Files.exists(manifestPath)) {
++			LOGGER.warn("manifest.json not found in {}", name);
++			return;
++		}
++
++		try (InputStream is = Files.newInputStream(manifestPath);
++			 InputStreamReader reader = new InputStreamReader(is, "UTF-8")) {
++
++			Gson gson = new Gson();
++			TypeToken<Map<String, List<String>>> token = new TypeToken<Map<String, List<String>>>() {};
++			Map<String, List<String>> map = gson.fromJson(reader, token);
++
++			List<String> recipeFiles = map.get("added_recipes");
++			List<String> groupFiles = map.get("added_item_groups");
++			List<String> removedRecipes = map.get("removed_recipes");
++
++			// --- Remove recipes ---
++			if (removedRecipes != null && !removedRecipes.isEmpty()) {
++				for (String removedRecipe : removedRecipes) {
++					String[] deconstructedKey = Registries.RECIPES.deconstructKey(removedRecipe);
++					Registries.RECIPES.getGroupFromKey(removedRecipe).unregister(deconstructedKey[2]);
++				}
++				LOGGER.info("Removed {} recipes", removedRecipes.size());
++			}
++
++			// --- Load item groups ---
++			if (groupFiles != null && !groupFiles.isEmpty()) {
++				for (String groupFile : groupFiles) {
++					Path groupFilePath = resources.get("recipes/" + groupFile);
++					if (Files.exists(groupFilePath)) {
++						try (InputStream groupIs = Files.newInputStream(groupFilePath)) {
++							String contents = StringUtils.readInputString(groupIs);
++							LOGGER.info("Loading item groups from {}/{}", name, groupFile);
++							DataLoader.loadItemGroupsFromString(contents);
++						}
++					}
++				}
++			}
++
++			// --- Load recipes ---
++			if (recipeFiles != null && !recipeFiles.isEmpty()) {
++				for (String recipeFile : recipeFiles) {
++					Path recipePath = resources.get("recipes/ " + recipeFile);
++					if (Files.exists(recipePath)) {
++						try (InputStream recipeIs = Files.newInputStream(recipePath)) {
++							String contents = StringUtils.readInputString(recipeIs);
++							LOGGER.info("Loading recipes from {}/{}", name, recipeFile);
++							DataLoader.loadRecipesFromString(contents);
++						}
++					}
++				}
++			}
++
++		} catch (IOException e) {
++			LOGGER.error("Failed to load data from {}", name, e);
++		}
++	}
++
++	protected static Map<AtomType, List<?>> loadAtomsFromProject(ProjectResources project) {
++		Map<AtomType, List<?>> atoms = new EnumMap<>(AtomType.class);
++
++		for (AtomType type : AtomType.values()) {
++			atoms.put(type, new ArrayList<>());
++		}
++
++		ZipResources zip = project.zip();
++
++		try (Stream<Path> paths = Files.walk(zip.get("/data"))) {
++			paths
++				.filter(Files::isRegularFile)
++				.filter(p -> p.toString().endsWith(".atom"))
++				.forEach(p -> {
++					try {
++						AtomTomlLoader.processAtomFile(
++							project.name(),
++							p,
++							atoms
++						);
++					} catch (Exception e) {
++						Main.LOGGER.error("Failed loading atom for {}", p.toString());
++					}
++				});
++		}  catch (Exception e) {
++			Main.LOGGER.error("Failed loading atoms for {}", project.name(), e);
++		}
++
++		return atoms;
++	}
++}
+Index: src/main/java/deus/btd/pipeline/io/AtomTomlDeserializer.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/io/AtomTomlDeserializer.java b/src/main/java/deus/btd/pipeline/io/AtomTomlDeserializer.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/io/AtomTomlDeserializer.java
+@@ -0,0 +1,241 @@
++package deus.btd.pipeline.io;
++
++import deus.btd.annotations.DeserializeToml;
++
++import deus.btd.annotations.TomlIgnoreClass;
++import deus.btd.annotations.TomlIgnoreField;
++import org.tomlj.TomlArray;
++import org.tomlj.TomlTable;
++
++import java.lang.reflect.Field;
++import java.lang.reflect.ParameterizedType;
++import java.lang.reflect.Type;
++import java.util.ArrayList;
++import java.util.HashMap;
++import java.util.List;
++import java.util.Map;
++
++public class AtomTomlDeserializer {
++
++	public static String toSnakeCase(String str) {
++		StringBuilder result = new StringBuilder();
++		for (int i = 0; i < str.length(); i++) {
++			char c = str.charAt(i);
++			if (Character.isUpperCase(c)) {
++				if (i != 0) {
++					result.append('_');
++				}
++				result.append(Character.toLowerCase(c));
++			} else {
++				result.append(c);
++			}
++		}
++		return result.toString();
++	}
++
++	private static Class<?> getClassFromType(Type type) {
++		if (type instanceof Class<?>) return (Class<?>) type;
++		if (type instanceof ParameterizedType) {
++			Type rawType = ((ParameterizedType) type).getRawType();
++			if (rawType instanceof Class<?>) return (Class<?>) rawType;
++		}
++		return null;
++	}
++
++	public static <T> T fromToml(TomlTable table, Class<T> clazz) throws Exception {
++		if (!clazz.isAnnotationPresent(DeserializeToml.class)) {
++			throw new IllegalArgumentException("The class" + clazz.getSimpleName() + " isn't marked with @DeserializeToml");
++		}
++
++		T obj = clazz.getDeclaredConstructor().newInstance();
++
++		for (Class<?> currentClass = clazz; currentClass != null; currentClass = currentClass.getSuperclass()) {
++			for (Field field : currentClass.getDeclaredFields()) {
++				field.setAccessible(true);
++
++				if (field.isAnnotationPresent(TomlIgnoreField.class)) continue;
++				if (field.isAnnotationPresent(TomlIgnoreClass.class)) continue;
++
++				String key = toSnakeCase(field.getName());
++				if (table.contains(key)) {
++					Object value = table.get(key);
++					Class<?> type = field.getType();
++
++					if (type == int.class || type == Integer.class) {
++						field.set(obj, ((Number)value).intValue());
++					} else if (type == long.class || type == Long.class) {
++						field.set(obj, ((Number)value).longValue());
++					} else if (type == double.class || type == Double.class) {
++						field.set(obj, ((Number)value).doubleValue());
++					} else if (type == boolean.class || type == Boolean.class) {
++						field.set(obj, value);
++					} else if (type == String.class) {
++						field.set(obj, value.toString());
++					} else if (value instanceof TomlTable && Map.class.isAssignableFrom(type)) {
++						Type genericType = field.getGenericType();
++						Type keyType = String.class;
++						Type valueType = Object.class;
++
++						if (genericType instanceof ParameterizedType) {
++							ParameterizedType pt = (ParameterizedType) genericType;
++							keyType = pt.getActualTypeArguments()[0];
++							valueType = pt.getActualTypeArguments()[1];
++						}
++
++						Map<Object, Object> map = tomlTableToMap((TomlTable) value, keyType, valueType);
++						field.set(obj, map);
++					} else if (value instanceof TomlTable && type.isAnnotationPresent(DeserializeToml.class)) {
++						TomlTable subTable = (TomlTable) value;
++						Object nestedObj = fromToml(subTable, type);
++						field.set(obj, nestedObj);
++					} else if (value instanceof TomlArray) {
++						TomlArray array = (TomlArray) value;
++
++						if (List.class.isAssignableFrom(type)) {
++							Type genericType = field.getGenericType();
++							if (genericType instanceof ParameterizedType) {
++								ParameterizedType pt = (ParameterizedType) genericType;
++								Type actualType = pt.getActualTypeArguments()[0];
++
++								List<Object> list = new ArrayList<>();
++
++								if (actualType instanceof ParameterizedType) {
++									ParameterizedType innerType = (ParameterizedType) actualType;
++									Type innerRawType = innerType.getRawType();
++
++									if (innerRawType instanceof Class<?> && Map.class.isAssignableFrom((Class<?>) innerRawType)) {
++										Type keyType = innerType.getActualTypeArguments()[0];
++										Type valueType = innerType.getActualTypeArguments()[1];
++
++										for (int i = 0; i < array.size(); i++) {
++											Object elem = array.get(i);
++											if (elem instanceof TomlTable) {
++												Map<Object, Object> map = tomlTableToMap((TomlTable) elem, keyType, valueType);
++												list.add(map);
++											}
++										}
++									} else if (innerRawType instanceof Class<?> && List.class.isAssignableFrom((Class<?>) innerRawType)) {
++										Type elementType = innerType.getActualTypeArguments()[0];
++
++										for (int i = 0; i < array.size(); i++) {
++											Object elem = array.get(i);
++											if (elem instanceof TomlArray) {
++												TomlArray innerArray = (TomlArray) elem;
++												List<Object> innerList = new ArrayList<>();
++
++												for (int j = 0; j < innerArray.size(); j++) {
++													Object innerElem = innerArray.get(j);
++													Object converted = convertValue(innerElem, elementType);
++													if (converted != null) {
++														innerList.add(converted);
++													}
++												}
++												list.add(innerList);
++											}
++										}
++									}
++								} else if (actualType instanceof Class<?>) {
++									Class<?> itemType = (Class<?>) actualType;
++
++									for (int i = 0; i < array.size(); i++) {
++										Object elem = array.get(i);
++
++										if (itemType.isAnnotationPresent(DeserializeToml.class) && elem instanceof TomlTable) {
++											list.add(fromToml((TomlTable) elem, itemType));
++										} else if (itemType == String.class) {
++											list.add(elem.toString());
++										} else if (itemType == Integer.class || itemType == int.class) {
++											list.add(((Number) elem).intValue());
++										} else if (itemType == Double.class || itemType == double.class) {
++											list.add(((Number) elem).doubleValue());
++										} else if (itemType == Boolean.class || itemType == boolean.class) {
++											list.add(elem);
++										} else {
++											System.out.println("Advertencia: tipo de lista no soportado: " + itemType.getTypeName());
++										}
++									}
++								}
++
++								field.set(obj, list);
++							}
++						}
++					}
++				}
++			}
++		}
++
++		return obj;
++	}
++
++	private static Map<Object, Object> tomlTableToMap(TomlTable table, Type keyType, Type valueType) {
++		Map<Object, Object> map = new HashMap<>();
++
++		for (String key : table.keySet()) {
++			Object value = table.get(key);
++
++			Object convertedKey = convertValue(key, keyType);
++			Object convertedValue = convertValue(value, valueType);
++
++			if (convertedKey != null && convertedValue != null) {
++				map.put(convertedKey, convertedValue);
++			}
++		}
++
++		return map;
++	}
++
++	private static Object convertValue(Object value, Type targetType) {
++		if (value instanceof TomlTable) {
++			if (targetType instanceof ParameterizedType) {
++				ParameterizedType pt = (ParameterizedType) targetType;
++				Type rawType = pt.getRawType();
++				if (rawType instanceof Class<?> && Map.class.isAssignableFrom((Class<?>) rawType)) {
++					Type keyType = pt.getActualTypeArguments()[0];
++					Type valueType = pt.getActualTypeArguments()[1];
++					return tomlTableToMap((TomlTable) value, keyType, valueType);
++				}
++			}
++
++			if (targetType instanceof Class<?> && Map.class.isAssignableFrom((Class<?>) targetType)) {
++				return tomlTableToMap((TomlTable) value, String.class, Object.class);
++			}
++			if (targetType instanceof Class<?> && ((Class<?>) targetType).isAnnotationPresent(DeserializeToml.class)) {
++				try {
++					return fromToml((TomlTable) value, (Class<?>) targetType);
++				} catch (Exception e) {
++					System.out.println("Error deserializando objeto: " + e.getMessage());
++					return null;
++				}
++			}
++			if (targetType instanceof Class<?> && ((Class<?>) targetType) == Object.class) {
++				return tomlTableToMap((TomlTable) value, String.class, Object.class);
++			}
++		}
++
++		if (targetType instanceof Class<?>) {
++			Class<?> clazz = (Class<?>) targetType;
++
++			if (clazz == String.class) {
++				return value.toString();
++			} else if (clazz == Integer.class || clazz == int.class) {
++				if (value instanceof Number) {
++					return ((Number) value).intValue();
++				}
++			} else if (clazz == Long.class || clazz == long.class) {
++				if (value instanceof Number) {
++					return ((Number) value).longValue();
++				}
++			} else if (clazz == Double.class || clazz == double.class) {
++				if (value instanceof Number) {
++					return ((Number) value).doubleValue();
++				}
++			} else if (clazz == Boolean.class || clazz == boolean.class) {
++				return value;
++			} else if (clazz == Object.class) {
++				return value;
++			}
++		}
++
++		return value;
++	}
++}
+Index: src/main/java/deus/btd/pipeline/compile/types/fields/Lang.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/compile/types/fields/Lang.java b/src/main/java/deus/btd/pipeline/compile/types/fields/Lang.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/compile/types/fields/Lang.java
+@@ -0,0 +1,19 @@
++package deus.btd.pipeline.compile.types.fields;
++
++import deus.btd.annotations.DeserializeToml;
++
++import java.util.Map;
++
++@DeserializeToml
++public class Lang { // [lang]
++	public String key;
++	public Map<String, LangLocale> locales; // [lang.en_US], [lang.es_ES] como Map
++
++
++	@DeserializeToml
++	public static class LangLocale {
++		public String name;
++		public String desc;
++		public String tooltip;
++	}
++}
+Index: src/main/java/deus/btd/pipeline/compile/types/fields/Recipe.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/compile/types/fields/Recipe.java b/src/main/java/deus/btd/pipeline/compile/types/fields/Recipe.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/compile/types/fields/Recipe.java
+@@ -0,0 +1,29 @@
++package deus.btd.pipeline.compile.types.fields;
++
++import deus.btd.annotations.DeserializeToml;
++
++import java.util.ArrayList;
++import java.util.List;
++import java.util.Map;
++
++@DeserializeToml
++public class Recipe {
++	public boolean enableWorkbench;
++	public boolean enableFurnace;
++	public Workbench workbench;
++	public Furnace furnace;
++
++	@DeserializeToml
++	public static class Workbench {
++		public int outputAmount;
++		public List<List<String>> pattern;
++		public List<Map<String,Integer>> symbols = new ArrayList<>();
++
++	}
++
++	@DeserializeToml
++	public static class Furnace {
++		public int out_item_id;
++		public int output_amount;
++	}
++}
+Index: src/main/java/deus/btd/pipeline/compile/types/AtomType.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/compile/types/AtomType.java b/src/main/java/deus/btd/pipeline/compile/types/AtomType.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/compile/types/AtomType.java
+@@ -0,0 +1,28 @@
++package deus.btd.pipeline.compile.types;
++
++import java.util.Arrays;
++
++public enum AtomType {
++	BLOCK(".block.atom"),
++	ITEM(".item.atom"),
++	BIOME(".biome.atom"),
++	WEATHER(".wheather.atom"),
++	PROJECT(".project.zip");
++
++	private final String suffix;
++
++	AtomType(String suffix) {
++		this.suffix = suffix;
++	}
++
++	public static AtomType fromFileName(String name) {
++		return Arrays.stream(values())
++			.filter(t -> name.endsWith(t.suffix))
++			.findFirst()
++			.orElseThrow(() -> new IllegalArgumentException("Tipo de atom desconocido: " + name));
++	}
++
++	public String suffix() {
++		return suffix;
++	}
++}
+Index: src/main/java/deus/btd/pipeline/compile/types/CompiledAtom.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/compile/types/CompiledAtom.java b/src/main/java/deus/btd/pipeline/compile/types/CompiledAtom.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/compile/types/CompiledAtom.java
+@@ -0,0 +1,24 @@
++package deus.btd.pipeline.compile.types;
++
++import deus.btd.annotations.DeserializeToml;
++import deus.btd.interfaces.IHasMeta;
++import deus.btd.annotations.TomlIgnoreField;
++
++@DeserializeToml
++public class CompiledAtom implements IHasMeta {
++
++	@TomlIgnoreField public String namespace;
++
++	public Meta meta;
++
++	@Override
++	public Meta getMeta() {
++		return meta;
++	}
++
++	@DeserializeToml
++	public static class Meta {
++		public String author;
++		public int formatVersion;
++	}
++}
+Index: src/main/java/deus/btd/pipeline/compile/types/CompiledItem.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/compile/types/CompiledItem.java b/src/main/java/deus/btd/pipeline/compile/types/CompiledItem.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/compile/types/CompiledItem.java
+@@ -0,0 +1,59 @@
++package deus.btd.pipeline.compile.types;
++
++import deus.btd.annotations.DeserializeToml;
++import deus.btd.interfaces.IHasLang;
++import deus.btd.pipeline.compile.types.fields.Lang;
++import deus.btd.pipeline.compile.types.fields.Recipe;
++
++import javax.annotation.Nullable;
++import java.util.List;
++
++@DeserializeToml
++public class CompiledItem extends CompiledAtom  implements IHasLang {
++
++	public Data data;
++	public Textures textures;
++
++	@Nullable public Lang lang;
++	@Nullable public Recipe recipe;
++	@Nullable public Tool tool;
++
++	@Override
++	public @Nullable Lang getLang() {
++		return lang;
++	}
++
++	@Override
++	public String Namespace() {
++		return this.namespace;
++	}
++
++	@DeserializeToml
++	public static class Data {
++		public String name;
++		public List<String> tags;
++		public String material;
++		public int maxStackSize;
++	}
++
++	@DeserializeToml
++	public static class Textures {
++		public String texture;
++	}
++
++	@DeserializeToml
++	public static class Tool {
++		public String type;
++	}
++
++	// Optional
++	@Nullable
++	public Food food;
++
++	@DeserializeToml
++	public static class Food {
++		public int healAmount;
++		public int ticksPerHeal;
++		public boolean favouriteWolfMeat;
++	}
++}
+Index: src/main/java/deus/btd/pipeline/compile/types/CompiledBiome.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/compile/types/CompiledBiome.java b/src/main/java/deus/btd/pipeline/compile/types/CompiledBiome.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/compile/types/CompiledBiome.java
+@@ -0,0 +1,17 @@
++package deus.btd.pipeline.compile.types;
++
++import deus.btd.annotations.DeserializeToml;
++
++import java.util.List;
++
++@DeserializeToml
++public class CompiledBiome extends CompiledAtom {
++	public Data data;
++
++	public static class Data {
++		public String key;
++		public boolean hasSurfaceSnow;
++		public int color;
++		public List<String> blockedWeathers;
++	}
++}
+Index: src/main/java/deus/btd/pipeline/compile/types/CompiledBlock.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/compile/types/CompiledBlock.java b/src/main/java/deus/btd/pipeline/compile/types/CompiledBlock.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/compile/types/CompiledBlock.java
+@@ -0,0 +1,125 @@
++package deus.btd.pipeline.compile.types;
++
++import deus.btd.annotations.DeserializeToml;
++import deus.btd.interfaces.IHasLang;
++import deus.btd.pipeline.compile.types.fields.Lang;
++import deus.btd.pipeline.compile.types.fields.Recipe;
++
++import javax.annotation.Nullable;
++import java.util.List;
++
++@DeserializeToml
++public class CompiledBlock extends CompiledAtom implements IHasLang {
++
++	public Data data;
++	public Textures textures;
++	@Nullable
++	public Sounds sounds;
++	@Nullable
++	public Flammability flammability;
++	@Nullable
++	public Render render;
++	@Nullable
++	public Physics physics;
++	@Nullable public Events events;
++	@Nullable public Recipe recipe;
++	@Nullable public Model model;
++	@Nullable public Logic logic;
++	@Nullable public Lang lang;
++
++	@Override
++	public @Nullable Lang getLang() {
++		return lang;
++	}
++
++	@Override
++	public String Namespace() {
++		return this.namespace;
++	}
++
++	// ------------------- Inner classes -------------------
++
++	@DeserializeToml
++	public static class Data {
++		public String name;
++		@Nullable
++		public List<String> tags;
++		public boolean immovable;
++		public boolean unbreakable;
++		public double resistance;
++		public double slipperiness;
++		public double hardness;
++		public String material;
++		public double luminance;
++	}
++
++	@DeserializeToml
++	public static class Model {
++		public String type;
++		public int baseBlockId; // Only Stairs
++		@Nullable public String rootKey; // Only Chests
++	}
++
++	@DeserializeToml
++	public static class Logic {
++		public String type;
++	}
++
++	@DeserializeToml
++	public static class Flammability {
++		public int chanceToCatchFire;
++		public int changeToDegrade;
++	}
++
++	@DeserializeToml
++	public static class Render {
++		public boolean isCubeShaped;
++		public boolean isSolidRender;
++	}
++
++	@DeserializeToml
++	public static class Sounds {
++		public String sound;
++	}
++
++	@DeserializeToml
++	public static class Physics {
++		public boolean isCollidable;
++	}
++
++	@DeserializeToml
++	public static class Textures {
++		public Faces faces;
++
++		@DeserializeToml
++		public static class Faces {
++			public String top;
++			public String bottom;
++			public String north;
++			public String south;
++			public String west;
++			public String east;
++		}
++	}
++
++	@DeserializeToml
++	public static class Events {
++		public BreakEvent onBreak;
++
++		@DeserializeToml
++		public static class BreakEvent {
++			public boolean dropItself;
++			public List<Drops> drops;
++
++			@DeserializeToml
++			public static class Drops {
++				public int item;
++				public String cause;
++				public int chance;
++			}
++		}
++	}
++
++
++
++}
+Index: src/main/java/deus/btd/pipeline/compile/types/CompiledWeather.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/compile/types/CompiledWeather.java b/src/main/java/deus/btd/pipeline/compile/types/CompiledWeather.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/compile/types/CompiledWeather.java
+@@ -0,0 +1,19 @@
++package deus.btd.pipeline.compile.types;
++
++import deus.btd.annotations.DeserializeToml;
++
++@DeserializeToml
++public class CompiledWeather extends CompiledAtom {
++
++	public Data data;
++
++	@DeserializeToml
++	public static class Data {
++		public boolean isPrecipitation;
++		public int subtractLightLevel;
++		public int precipitationType;
++		public boolean spawnRainParticles;
++		public boolean isDamp;
++		public float fogDistance;
++	}
++}
+Index: src/main/java/deus/btd/pipeline/compile/types/CompiledAtomProjectHeader.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/compile/types/CompiledAtomProjectHeader.java b/src/main/java/deus/btd/pipeline/compile/types/CompiledAtomProjectHeader.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/compile/types/CompiledAtomProjectHeader.java
+@@ -0,0 +1,15 @@
++package deus.btd.pipeline.compile.types;
++
++import deus.btd.annotations.DeserializeToml;
++
++@DeserializeToml
++public class CompiledAtomProjectHeader extends CompiledAtom {
++
++	public Data data;
++
++	@DeserializeToml
++	public static class Data {
++		public String name;
++	}
++
++}
+Index: src/main/java/deus/btd/pipeline/compile/ItemCompiler.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/compile/ItemCompiler.java b/src/main/java/deus/btd/pipeline/compile/ItemCompiler.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/compile/ItemCompiler.java
+@@ -0,0 +1,16 @@
++package deus.btd.pipeline.compile;
++
++import deus.btd.pipeline.compile.types.CompiledBlock;
++import deus.btd.pipeline.compile.types.CompiledItem;
++import deus.btd.pipeline.util.AtomConstants;
++
++import static deus.btd.Main.LOGGER;
++
++public class ItemCompiler {
++	public static boolean validate(CompiledItem item) {
++		if (item == null) return false;
++		if (item.meta.formatVersion != AtomConstants.FORMAT_VERSION) return false;
++		return item.data.name != null;
++	}
++
++}
+Index: src/main/java/deus/btd/pipeline/compile/BiomeCompiler.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/compile/BiomeCompiler.java b/src/main/java/deus/btd/pipeline/compile/BiomeCompiler.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/compile/BiomeCompiler.java
+@@ -0,0 +1,12 @@
++package deus.btd.pipeline.compile;
++
++import deus.btd.pipeline.compile.types.CompiledBiome;
++import deus.btd.pipeline.util.AtomConstants;
++
++public class BiomeCompiler {
++	public static boolean validate(CompiledBiome biome) {
++		if (biome == null) return false;
++		if (biome.meta.formatVersion != AtomConstants.FORMAT_VERSION) return false;
++		return biome.data.key != null;
++	}
++}
+Index: src/main/java/deus/btd/pipeline/compile/BlockCompiler.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/compile/BlockCompiler.java b/src/main/java/deus/btd/pipeline/compile/BlockCompiler.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/compile/BlockCompiler.java
+@@ -0,0 +1,13 @@
++package deus.btd.pipeline.compile;
++
++import deus.btd.pipeline.compile.types.CompiledBlock;
++import deus.btd.pipeline.util.AtomConstants;
++
++public class BlockCompiler {
++	public static boolean validate(CompiledBlock block) {
++		if (block == null) return false;
++		if (block.meta.formatVersion != AtomConstants.FORMAT_VERSION) return false;
++		return block.data.name != null;
++	}
++
++}
+Index: src/main/java/deus/btd/pipeline/util/AtomConstants.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/util/AtomConstants.java b/src/main/java/deus/btd/pipeline/util/AtomConstants.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/util/AtomConstants.java
+@@ -0,0 +1,5 @@
++package deus.btd.pipeline.util;
++
++public class AtomConstants {
++	public final static int FORMAT_VERSION = 2;
++}
+Index: src/main/java/deus/btd/pipeline/registry/BiomeRegistry.java
+===================================================================
+diff --git a/src/main/java/deus/btd/pipeline/registry/BiomeRegistry.java b/src/main/java/deus/btd/pipeline/registry/BiomeRegistry.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/pipeline/registry/BiomeRegistry.java
+@@ -0,0 +1,9 @@
++package deus.btd.pipeline.registry;
++
++import deus.btd.pipeline.compile.types.CompiledBiome;
++
++public class BiomeRegistry {
++	public void register(CompiledBiome biome) {
++
++	}
++}
+Index: src/main/java/deus/btd/generation/AtomBiome.java
+===================================================================
+diff --git a/src/main/java/deus/btd/generation/AtomBiome.java b/src/main/java/deus/btd/generation/AtomBiome.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/generation/AtomBiome.java
+@@ -0,0 +1,100 @@
++package deus.btd.generation;
++
++import net.minecraft.core.entity.SpawnListEntry;
++import net.minecraft.core.world.biome.Biome;
++import net.minecraft.core.world.weather.Weather;
++
++import java.util.ArrayList;
++import java.util.List;
++
++public class AtomBiome extends Biome {
++
++	public AtomBiome(String key) {
++		super(key);
++	}
++
++
++	public AtomBiome color(int color) {
++		this.color = color;
++		return this;
++	}
++
++	public AtomBiome topBlock(short block) {
++		this.topBlock = block;
++		return this;
++	}
++
++	public AtomBiome fillerBlock(short block) {
++		this.fillerBlock = block;
++		return this;
++	}
++
++	public AtomBiome blockedWeathers(Weather... weathers) {
++		this.blockedWeathers = weathers;
++		return this;
++	}
++
++	/*
++	public AtomBiome hasSurfaceSnow(boolean value) {
++
++		this.hasSurfaceSnow = value;
++		return this;
++	}
++	*/
++
++	/* ---------- spawn lists ---------- */
++
++	public AtomBiome monsters(List<SpawnListEntry> list) {
++		this.spawnableMonsterList = list;
++		return this;
++	}
++
++	public AtomBiome creatures(List<SpawnListEntry> list) {
++		this.spawnableCreatureList = list;
++		return this;
++	}
++
++	public AtomBiome waterCreatures(List<SpawnListEntry> list) {
++		this.spawnableWaterCreatureList = list;
++		return this;
++	}
++
++	public AtomBiome ambientCreatures(List<SpawnListEntry> list) {
++		this.spawnableAmbientCreatureList = list;
++		return this;
++	}
++
++	/* ---------- helpers cómodos ---------- */
++
++	public AtomBiome addMonster(SpawnListEntry entry) {
++		if (this.spawnableMonsterList == null) {
++			this.spawnableMonsterList = new ArrayList<>();
++		}
++		this.spawnableMonsterList.add(entry);
++		return this;
++	}
++
++	public AtomBiome addCreature(SpawnListEntry entry) {
++		if (this.spawnableCreatureList == null) {
++			this.spawnableCreatureList = new ArrayList<>();
++		}
++		this.spawnableCreatureList.add(entry);
++		return this;
++	}
++
++	public AtomBiome addWaterCreature(SpawnListEntry entry) {
++		if (this.spawnableWaterCreatureList == null) {
++			this.spawnableWaterCreatureList = new ArrayList<>();
++		}
++		this.spawnableWaterCreatureList.add(entry);
++		return this;
++	}
++
++	public AtomBiome addAmbientCreature(SpawnListEntry entry) {
++		if (this.spawnableAmbientCreatureList == null) {
++			this.spawnableAmbientCreatureList = new ArrayList<>();
++		}
++		this.spawnableAmbientCreatureList.add(entry);
++		return this;
++	}
++}
+Index: src/main/java/deus/btd/generation/AtomWorld.java
+===================================================================
+diff --git a/src/main/java/deus/btd/generation/AtomWorld.java b/src/main/java/deus/btd/generation/AtomWorld.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/generation/AtomWorld.java
+@@ -0,0 +1,9 @@
++package deus.btd.generation;
++
++import net.minecraft.core.world.World;
++
++public class AtomWorld extends World {
++	protected AtomWorld() {
++
++	}
++}
+Index: src/main/java/deus/btd/generation/AtomWorldBuilder.java
+===================================================================
+diff --git a/src/main/java/deus/btd/generation/AtomWorldBuilder.java b/src/main/java/deus/btd/generation/AtomWorldBuilder.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/deus/btd/generation/AtomWorldBuilder.java
+@@ -0,0 +1,65 @@
++package deus.btd.generation;
++
++import net.minecraft.core.world.Dimension;
++import net.minecraft.core.world.biome.provider.BiomeProvider;
++import net.minecraft.core.world.chunk.provider.IChunkProvider;
++import net.minecraft.core.world.save.LevelStorage;
++import net.minecraft.core.world.season.SeasonManager;
++import net.minecraft.core.world.type.WorldType;
++import net.minecraft.core.world.weather.WeatherManager;
++
++public class AtomWorldBuilder {
++
++	private final AtomWorld world;
++
++	public AtomWorldBuilder() {
++		this.world = new AtomWorld();
++	}
++
++	public AtomWorldBuilder dimension(Dimension dimension) {
++		world.dimension = dimension;
++		return this;
++	}
++
++	public AtomWorldBuilder worldType(WorldType worldType) {
++		world.worldType = worldType;
++		return this;
++	}
++
++	public AtomWorldBuilder chunkProvider(IChunkProvider provider) {
++		world.chunkProvider = provider;
++		return this;
++	}
++
++	public AtomWorldBuilder saveHandler(LevelStorage storage) {
++		world.saveHandler = storage;
++		return this;
++	}
++
++	public AtomWorldBuilder biomeProvider(BiomeProvider provider) {
++		world.biomeProvider = provider;
++		return this;
++	}
++
++	public AtomWorldBuilder seasonManager(SeasonManager manager) {
++		world.seasonManager = manager;
++		return this;
++	}
++
++	public AtomWorldBuilder weatherManager(WeatherManager manager) {
++		world.weatherManager = manager;
++		return this;
++	}
++
++	public AtomWorldBuilder clientSide(boolean clientSide) {
++		world.isClientSide = clientSide;
++		return this;
++	}
++
++	public AtomWorld build() {
++		if (world.dimension == null) {
++			throw new IllegalStateException("Dimension no puede ser null");
++		}
++		return world;
++	}
++}
+Index: src/main/java/deus/btd/Main.java
+===================================================================
+diff --git a/src/main/java/deus/btd/Main.java b/src/main/java/deus/btd/Main.java
+--- a/src/main/java/deus/btd/Main.java
++++ b/src/main/java/deus/btd/Main.java
+@@ -3,11 +3,14 @@
+ import deus.btd.interfaces.IHasLang;
+ import deus.btd.mixin.I18nAccessor;
+ import deus.btd.mixin.LanguageAccessor;
+-import deus.btd.toml.AtomLoader;
+-import deus.btd.toml.project.ProjectProcessed;
+-import deus.btd.toml.types.CompiledBlock;
+-import deus.btd.toml.types.CompiledItem;
+-import deus.btd.toml.types.fields.Lang;
++import deus.btd.pipeline.io.AtomPaths;
++import deus.btd.pipeline.io.AtomProjectLoader;
++import deus.btd.pipeline.project.AtomDataCache;
++import deus.btd.pipeline.project.ProjectProcessed;
++import deus.btd.pipeline.compile.types.CompiledBlock;
++import deus.btd.pipeline.compile.types.CompiledItem;
++import deus.btd.pipeline.compile.types.fields.Lang;
++import deus.btd.pipeline.project.ProjectProcessor;
+ import net.fabricmc.api.ModInitializer;
+ import net.minecraft.client.Minecraft;
+ import net.minecraft.core.block.Block;
+@@ -37,7 +40,7 @@
+ 		LOGGER.info("Initialization started.");
+ 
+ 		try {
+-			AtomLoader.createFolders();
++			AtomPaths.createFolders();
+ 
+ 			LOGGER.info("Creating folders.");
+ 		} catch (IOException e) {
+@@ -46,8 +49,9 @@
+ 		}
+ 
+ 		LOGGER.info("Processing projects.");
+-		AtomLoader.deletePreviousConfig();
+-		PROJECTS = AtomLoader.processProjects(AtomLoader.loadProjects(AtomLoader.ATOMS_FILES_PATH));
++		AtomPaths.deletePreviousConfig();
++		PROJECTS = ProjectProcessor.processProjects(AtomProjectLoader.loadProjects(AtomPaths.DATA));
++
+ 
+ 	}
+ 
+Index: src/main/java/deus/btd/interfaces/IHasLang.java
+===================================================================
+diff --git a/src/main/java/deus/btd/interfaces/IHasLang.java b/src/main/java/deus/btd/interfaces/IHasLang.java
+--- a/src/main/java/deus/btd/interfaces/IHasLang.java
++++ b/src/main/java/deus/btd/interfaces/IHasLang.java
+@@ -1,6 +1,6 @@
+ package deus.btd.interfaces;
+ 
+-import deus.btd.toml.types.fields.Lang;
++import deus.btd.pipeline.compile.types.fields.Lang;
+ 
+ public interface IHasLang extends IHasNamespace{
+ 	Lang getLang();
+Index: src/main/java/deus/btd/interfaces/IHasMeta.java
+===================================================================
+diff --git a/src/main/java/deus/btd/interfaces/IHasMeta.java b/src/main/java/deus/btd/interfaces/IHasMeta.java
+--- a/src/main/java/deus/btd/interfaces/IHasMeta.java
++++ b/src/main/java/deus/btd/interfaces/IHasMeta.java
+@@ -1,6 +1,6 @@
+ package deus.btd.interfaces;
+ 
+-import deus.btd.toml.types.CompiledAtom;
++import deus.btd.pipeline.compile.types.CompiledAtom;
+ 
+ public interface IHasMeta {
+ 	CompiledAtom.Meta getMeta();
+Index: src/main/java/deus/btd/interfaces/IHasNamespace.java
+===================================================================
+diff --git a/src/main/java/deus/btd/interfaces/IHasNamespace.java b/src/main/java/deus/btd/interfaces/IHasNamespace.java
+--- a/src/main/java/deus/btd/interfaces/IHasNamespace.java
++++ b/src/main/java/deus/btd/interfaces/IHasNamespace.java
+@@ -1,7 +1,5 @@
+ package deus.btd.interfaces;
+ 
+-import deus.btd.toml.types.fields.Lang;
+-
+ public interface IHasNamespace {
+ 	String Namespace();
+ }
+Index: src/main/java/deus/btd/entry_points/Models.java
+===================================================================
+diff --git a/src/main/java/deus/btd/entry_points/Models.java b/src/main/java/deus/btd/entry_points/Models.java
+--- a/src/main/java/deus/btd/entry_points/Models.java
++++ b/src/main/java/deus/btd/entry_points/Models.java
+@@ -2,10 +2,10 @@
+ 
+ import deus.btd.Main;
+ import deus.btd.enums.BlockTypes;
+-import deus.btd.toml.project.ProjectProcessed;
+-import deus.btd.toml.types.AtomType;
+-import deus.btd.toml.types.CompiledBlock;
+-import deus.btd.toml.types.CompiledItem;
++import deus.btd.pipeline.project.ProjectProcessed;
++import deus.btd.pipeline.compile.types.AtomType;
++import deus.btd.pipeline.compile.types.CompiledBlock;
++import deus.btd.pipeline.compile.types.CompiledItem;
+ import net.minecraft.client.render.EntityRenderDispatcher;
+ import net.minecraft.client.render.TileEntityRenderDispatcher;
+ import net.minecraft.client.render.block.color.BlockColorDispatcher;
+Index: src/main/java/deus/btd/entry_points/Recipes.java
+===================================================================
+diff --git a/src/main/java/deus/btd/entry_points/Recipes.java b/src/main/java/deus/btd/entry_points/Recipes.java
+--- a/src/main/java/deus/btd/entry_points/Recipes.java
++++ b/src/main/java/deus/btd/entry_points/Recipes.java
+@@ -1,11 +1,10 @@
+ package deus.btd.entry_points;
+ 
+ import deus.btd.Main;
+-import deus.btd.toml.AtomCompiler;
+-import deus.btd.toml.project.ProjectProcessed;
+-import deus.btd.toml.types.AtomType;
+-import deus.btd.toml.types.CompiledBlock;
+-import deus.btd.toml.types.CompiledItem;
++import deus.btd.pipeline.project.ProjectProcessed;
++import deus.btd.pipeline.compile.types.AtomType;
++import deus.btd.pipeline.compile.types.CompiledBlock;
++import deus.btd.pipeline.compile.types.CompiledItem;
+ import net.minecraft.core.block.Blocks;
+ import net.minecraft.core.data.registry.Registries;
+ import net.minecraft.core.data.registry.recipe.RecipeNamespace;
+@@ -21,7 +20,7 @@
+ 
+ import static deus.btd.Main.LOGGER;
+ import static deus.btd.Main.MOD_ID;
+-import static deus.btd.toml.AtomLoader.formatAtomKey;
++import static deus.btd.pipeline.project.AtomDataCache.AtomLoader.formatAtomKey;
+ import static deus.btd.utils.ConfigManager.blockGoc;
+ import static deus.btd.utils.ConfigManager.itemGoc;
+ 
+Index: src/main/java/deus/btd/toml/AtomDataCache.java
+===================================================================
+diff --git a/src/main/java/deus/btd/toml/AtomDataCache.java b/src/main/java/deus/btd/toml/AtomDataCache.java
+deleted file mode 100644
+--- a/src/main/java/deus/btd/toml/AtomDataCache.java
++++ /dev/null
+@@ -1,18 +0,0 @@
+-package deus.btd.toml;
+-
+-
+-import deus.btd.toml.types.AtomType;
+-
+-import java.util.List;
+-import java.util.Map;
+-
+-public class AtomDataCache {
+-	public static Map<AtomType, List<?>> ATOMS = null;
+-
+-	public static void clear() {
+-		if (ATOMS != null) {
+-			ATOMS.clear();
+-			ATOMS = null;
+-		}
+-	}
+-}
+Index: src/main/java/deus/btd/toml/AtomLoader.java
+===================================================================
+diff --git a/src/main/java/deus/btd/toml/AtomLoader.java b/src/main/java/deus/btd/toml/AtomLoader.java
+deleted file mode 100644
+--- a/src/main/java/deus/btd/toml/AtomLoader.java
++++ /dev/null
+@@ -1,282 +0,0 @@
+-package deus.btd.toml;
+-
+-import com.b100.utils.StringUtils;
+-import com.google.gson.Gson;
+-import com.google.gson.reflect.TypeToken;
+-import deus.btd.toml.project.ProjectProcessed;
+-import deus.btd.toml.project.ProjectResources;
+-import deus.btd.toml.types.*;
+-import deus.btd.utils.ConfigManager;
+-import deus.btd.utils.ZipResources;
+-import net.minecraft.client.Minecraft;
+-import net.minecraft.core.block.Block;
+-import net.minecraft.core.data.DataLoader;
+-import net.minecraft.core.data.registry.Registries;
+-import net.minecraft.core.item.Item;
+-import org.tomlj.Toml;
+-import org.tomlj.TomlParseResult;
+-
+-import java.io.File;
+-import java.io.IOException;
+-import java.io.InputStream;
+-import java.io.InputStreamReader;
+-import java.nio.file.Files;
+-import java.nio.file.Path;
+-import java.nio.file.Paths;
+-import java.util.*;
+-import java.util.function.Function;
+-import java.util.stream.Collectors;
+-import java.util.stream.Stream;
+-import java.util.zip.ZipEntry;
+-import java.util.zip.ZipFile;
+-
+-import static deus.btd.Main.*;
+-import static deus.btd.utils.ConfigManager.configBlockIDsFromNames;
+-import static deus.btd.utils.ConfigManager.configItemsIDsFromNames;
+-
+-public class AtomLoader {
+-
+-
+-	public static final Path ATOMS_PATH = Paths.get(Minecraft.getMinecraft().getMinecraftDir().getPath(), "btd");
+-	public static final Path ATOMS_FILES_PATH = Paths.get(ATOMS_PATH.toString(), "data");
+-	public static final Path CONFIG_FILE_PATH = Paths.get(Minecraft.getMinecraft().getMinecraftDir().getPath(), "config/better_than_datapacks.cfg");
+-
+-	public static void createFolders() throws IOException {
+-		Files.createDirectories(ATOMS_FILES_PATH);
+-	}
+-
+-	public static void deletePreviousConfig() {
+-		if (CONFIG_FILE_PATH.toFile().exists()) {
+-			LOGGER.info("Deleting previous config.");
+-			boolean result = AtomLoader.CONFIG_FILE_PATH.toFile().delete();
+-			LOGGER.info("Deleted: {}", result);
+-		}
+-	}
+-
+-	@SuppressWarnings("unchecked")
+-	public static void processAtomFile(String name, Path tomlFile, Map<AtomType, List<?>> compiledAtoms) throws Exception {
+-		String fileName = tomlFile.getFileName().toString();
+-		AtomType type = AtomType.fromFileName(fileName);
+-		TomlParseResult tomlResult = loadToml(tomlFile);
+-
+-		switch (type) {
+-			case BLOCK: {
+-				CompiledBlock block = AtomTomlDeserializer.fromToml(tomlResult, CompiledBlock.class);
+-				block.namespace = name;
+-				((List<CompiledBlock>) compiledAtoms.get(AtomType.BLOCK))
+-					.add(block);
+-				break;
+-			}
+-			case ITEM: {
+-				CompiledItem item = AtomTomlDeserializer.fromToml(tomlResult, CompiledItem.class);
+-				item.namespace = name;
+-				((List<CompiledItem>) compiledAtoms.get(AtomType.ITEM))
+-					.add(item);
+-				break;
+-			}
+-		}
+-	}
+-
+-	public static CompiledAtomProjectHeader loadAtomProjectHeader(Path tomlFile) throws Exception {
+-		return AtomTomlDeserializer.fromToml(loadToml(tomlFile), CompiledAtomProjectHeader.class);
+-	}
+-
+-
+-	public static TomlParseResult loadToml(Path path) throws IOException {
+-		List<String> lines = Files.readAllLines(path);
+-		StringBuilder content = new StringBuilder();
+-		for (String line : lines) {
+-			content.append(line).append("\n");
+-		}
+-
+-		TomlParseResult result = Toml.parse(content.toString());
+-		return result;
+-	}
+-
+-
+-
+-	public static List<Block<?>> loadAtomBlocks(List<CompiledBlock> compiledBlocks) {
+-		System.out.println(compiledBlocks.get(0).data);
+-		List<Block<?>> blocks = new ArrayList<>();
+-
+-		try {
+-
+-			// CREATE ATOMS MOD CONFIG WITH ALL LOADED BLOCKS NAMES
+-			List<String> keys = compiledBlocks.stream()
+-				.map(atom -> {
+-					String author = atom.meta != null && atom.meta.author != null ? atom.meta.author : "Unnamed";
+-					String name = atom.data != null && atom.data.name != null ? atom.data.name : "UnnamedBlock";
+-					return formatAtomKey(author, name);
+-				})
+-				.filter(Objects::nonNull)
+-				.collect(Collectors.toList());
+-
+-
+-			configBlockIDsFromNames(keys, ConfigManager.TOML);
+-			ConfigManager.makeConfig();
+-
+-			// CREATING INSTANCES
+-			LOGGER.info("Creating block instances for atoms...");
+-
+-
+-			for (CompiledBlock atom : compiledBlocks) {
+-				if (!AtomCompiler.isValidBlockAtom(atom)) continue;
+-				blocks.add(AtomCompiler.convertIntoBlocks(atom));
+-			}
+-
+-			LOGGER.info("Atom blocks successfully created: {}", blocks.size());
+-
+-		} catch (Exception e) {
+-			LOGGER.error("Failed to initialize atoms.", e);
+-			throw new RuntimeException(e);
+-		}
+-		return blocks;
+-	}
+-
+-	public static String formatAtomKey(String author, String atomName) {
+-		return (author + "_" + atomName).trim().replace(" ", "_");
+-	}
+-
+-
+-	public static List<Item> loadAtomItems(List<CompiledItem> compiledItems) {
+-		List<Item> items = new ArrayList<>();
+-
+-		try {
+-
+-			// CREATE ATOMS MOD CONFIG WITH ALL LOADED BLOCKS NAMES
+-			List<String> keys = compiledItems.stream()
+-				.map(atom -> {
+-					String author = atom.meta != null && atom.meta.author != null ? atom.meta.author : "Unnamed";
+-					String name = atom.data != null && atom.data.name != null ? atom.data.name : "UnnamedItem";
+-					return formatAtomKey(author, name);
+-				})
+-				.filter(Objects::nonNull)
+-				.collect(Collectors.toList());
+-
+-
+-			configItemsIDsFromNames(keys, ConfigManager.TOML);
+-			ConfigManager.makeConfig();
+-
+-			// CREATING INSTANCES
+-			LOGGER.info("Creating block instances for atoms...");
+-
+-
+-			for (CompiledItem atom : compiledItems) {
+-				if (!AtomCompiler.isValidItemAtom(atom)) continue;
+-				items.add(AtomCompiler.convertIntoItem(atom));
+-			}
+-
+-			LOGGER.info("Atom blocks successfully created: {}", blocks.size());
+-
+-		} catch (Exception e) {
+-			LOGGER.error("Failed to initialize atoms.", e);
+-			throw new RuntimeException(e);
+-		}
+-		return items;
+-	}
+-
+-	public static List<ProjectResources> loadProjects(Path folder) {
+-		List<ProjectResources> projectResources = new ArrayList<>();
+-		try (Stream<Path> paths = Files.walk(folder)) {
+-			paths
+-				.filter(Files::isRegularFile)
+-				.filter(p -> p.getFileName().toString().endsWith(AtomType.PROJECT.suffix()))
+-				.forEach(zip -> {
+-					try {
+-						projectResources.add(new ProjectResources(zip));
+-					} catch (Exception e) {
+-						LOGGER.error("Failed to load atom file: {}", zip, e);
+-					}
+-				});
+-		} catch (IOException e) {
+-			throw new RuntimeException(e);
+-		}
+-		return projectResources;
+-	}
+-
+-	public static List<ProjectProcessed> processProjects(List<ProjectResources> projectResources) {
+-		List<ProjectProcessed> projects = new ArrayList<>();
+-		projectResources.forEach((pj -> {
+-			List<CompiledItem> items = (List<CompiledItem>) pj.getAtoms().get(AtomType.ITEM);
+-			List<CompiledBlock> blocks = (List<CompiledBlock>) pj.getAtoms().get(AtomType.BLOCK);
+-
+-			ProjectProcessed processed = new ProjectProcessed(
+-				pj.getName(),
+-				pj,
+-				AtomLoader.loadAtomBlocks(blocks).stream()
+-
+-					.collect(Collectors.toMap(block -> ((Block<?>)block).namespaceId().toString(), Function.identity())),
+-				AtomLoader.loadAtomItems(items).stream()
+-
+-					.collect(Collectors.toMap(item -> ((Item)item).namespaceID.toString(), Function.identity()))
+-			);
+-
+-			projects.add(processed);
+-		}));
+-		return projects;
+-	}
+-
+-	public static void loadDatapack(String name, ZipResources resources) {
+-		LOGGER.info("Loading data from {}", name);
+-
+-		Path manifestPath = resources.get("recipes/manifest.json");
+-		if (!Files.exists(manifestPath)) {
+-			LOGGER.warn("manifest.json not found in {}", name);
+-			return;
+-		}
+-
+-		try (InputStream is = Files.newInputStream(manifestPath);
+-			 InputStreamReader reader = new InputStreamReader(is, "UTF-8")) {
+-
+-			Gson gson = new Gson();
+-			TypeToken<Map<String, List<String>>> token = new TypeToken<Map<String, List<String>>>() {};
+-			Map<String, List<String>> map = gson.fromJson(reader, token);
+-
+-			List<String> recipeFiles = map.get("added_recipes");
+-			List<String> groupFiles = map.get("added_item_groups");
+-			List<String> removedRecipes = map.get("removed_recipes");
+-
+-			// --- Remove recipes ---
+-			if (removedRecipes != null && !removedRecipes.isEmpty()) {
+-				for (String removedRecipe : removedRecipes) {
+-					String[] deconstructedKey = Registries.RECIPES.deconstructKey(removedRecipe);
+-					Registries.RECIPES.getGroupFromKey(removedRecipe).unregister(deconstructedKey[2]);
+-				}
+-				LOGGER.info("Removed {} recipes", removedRecipes.size());
+-			}
+-
+-			// --- Load item groups ---
+-			if (groupFiles != null && !groupFiles.isEmpty()) {
+-				for (String groupFile : groupFiles) {
+-					Path groupFilePath = resources.get("recipes/" + groupFile);
+-					if (Files.exists(groupFilePath)) {
+-						try (InputStream groupIs = Files.newInputStream(groupFilePath)) {
+-							String contents = StringUtils.readInputString(groupIs);
+-							LOGGER.info("Loading item groups from {}/{}", name, groupFile);
+-							DataLoader.loadItemGroupsFromString(contents);
+-						}
+-					}
+-				}
+-			}
+-
+-			// --- Load recipes ---
+-			if (recipeFiles != null && !recipeFiles.isEmpty()) {
+-				for (String recipeFile : recipeFiles) {
+-					Path recipePath = resources.get("recipes/ " + recipeFile);
+-					if (Files.exists(recipePath)) {
+-						try (InputStream recipeIs = Files.newInputStream(recipePath)) {
+-							String contents = StringUtils.readInputString(recipeIs);
+-							LOGGER.info("Loading recipes from {}/{}", name, recipeFile);
+-							DataLoader.loadRecipesFromString(contents);
+-						}
+-					}
+-				}
+-			}
+-
+-		} catch (IOException e) {
+-			LOGGER.error("Failed to load data from {}", name, e);
+-		}
+-	}
+-
+-
+-}
+Index: src/main/java/deus/btd/toml/AtomTomlDeserializer.java
+===================================================================
+diff --git a/src/main/java/deus/btd/toml/AtomTomlDeserializer.java b/src/main/java/deus/btd/toml/AtomTomlDeserializer.java
+deleted file mode 100644
+--- a/src/main/java/deus/btd/toml/AtomTomlDeserializer.java
++++ /dev/null
+@@ -1,241 +0,0 @@
+-package deus.btd.toml;
+-
+-import deus.btd.annotations.DeserializeToml;
+-
+-import deus.btd.annotations.TomlIgnoreClass;
+-import deus.btd.annotations.TomlIgnoreField;
+-import org.tomlj.TomlArray;
+-import org.tomlj.TomlTable;
+-
+-import java.lang.reflect.Field;
+-import java.lang.reflect.ParameterizedType;
+-import java.lang.reflect.Type;
+-import java.util.ArrayList;
+-import java.util.HashMap;
+-import java.util.List;
+-import java.util.Map;
+-
+-public class AtomTomlDeserializer {
+-
+-	public static String toSnakeCase(String str) {
+-		StringBuilder result = new StringBuilder();
+-		for (int i = 0; i < str.length(); i++) {
+-			char c = str.charAt(i);
+-			if (Character.isUpperCase(c)) {
+-				if (i != 0) {
+-					result.append('_');
+-				}
+-				result.append(Character.toLowerCase(c));
+-			} else {
+-				result.append(c);
+-			}
+-		}
+-		return result.toString();
+-	}
+-
+-	private static Class<?> getClassFromType(Type type) {
+-		if (type instanceof Class<?>) return (Class<?>) type;
+-		if (type instanceof ParameterizedType) {
+-			Type rawType = ((ParameterizedType) type).getRawType();
+-			if (rawType instanceof Class<?>) return (Class<?>) rawType;
+-		}
+-		return null;
+-	}
+-
+-	public static <T> T fromToml(TomlTable table, Class<T> clazz) throws Exception {
+-		if (!clazz.isAnnotationPresent(DeserializeToml.class)) {
+-			throw new IllegalArgumentException("The class" + clazz.getSimpleName() + " isn't marked with @DeserializeToml");
+-		}
+-
+-		T obj = clazz.getDeclaredConstructor().newInstance();
+-
+-		for (Class<?> currentClass = clazz; currentClass != null; currentClass = currentClass.getSuperclass()) {
+-			for (Field field : currentClass.getDeclaredFields()) {
+-				field.setAccessible(true);
+-
+-				if (field.isAnnotationPresent(TomlIgnoreField.class)) continue;
+-				if (field.isAnnotationPresent(TomlIgnoreClass.class)) continue;
+-
+-				String key = toSnakeCase(field.getName());
+-				if (table.contains(key)) {
+-					Object value = table.get(key);
+-					Class<?> type = field.getType();
+-
+-					if (type == int.class || type == Integer.class) {
+-						field.set(obj, ((Number)value).intValue());
+-					} else if (type == long.class || type == Long.class) {
+-						field.set(obj, ((Number)value).longValue());
+-					} else if (type == double.class || type == Double.class) {
+-						field.set(obj, ((Number)value).doubleValue());
+-					} else if (type == boolean.class || type == Boolean.class) {
+-						field.set(obj, value);
+-					} else if (type == String.class) {
+-						field.set(obj, value.toString());
+-					} else if (value instanceof TomlTable && Map.class.isAssignableFrom(type)) {
+-						Type genericType = field.getGenericType();
+-						Type keyType = String.class;
+-						Type valueType = Object.class;
+-
+-						if (genericType instanceof ParameterizedType) {
+-							ParameterizedType pt = (ParameterizedType) genericType;
+-							keyType = pt.getActualTypeArguments()[0];
+-							valueType = pt.getActualTypeArguments()[1];
+-						}
+-
+-						Map<Object, Object> map = tomlTableToMap((TomlTable) value, keyType, valueType);
+-						field.set(obj, map);
+-					} else if (value instanceof TomlTable && type.isAnnotationPresent(DeserializeToml.class)) {
+-						TomlTable subTable = (TomlTable) value;
+-						Object nestedObj = fromToml(subTable, type);
+-						field.set(obj, nestedObj);
+-					} else if (value instanceof TomlArray) {
+-						TomlArray array = (TomlArray) value;
+-
+-						if (List.class.isAssignableFrom(type)) {
+-							Type genericType = field.getGenericType();
+-							if (genericType instanceof ParameterizedType) {
+-								ParameterizedType pt = (ParameterizedType) genericType;
+-								Type actualType = pt.getActualTypeArguments()[0];
+-
+-								List<Object> list = new ArrayList<>();
+-
+-								if (actualType instanceof ParameterizedType) {
+-									ParameterizedType innerType = (ParameterizedType) actualType;
+-									Type innerRawType = innerType.getRawType();
+-
+-									if (innerRawType instanceof Class<?> && Map.class.isAssignableFrom((Class<?>) innerRawType)) {
+-										Type keyType = innerType.getActualTypeArguments()[0];
+-										Type valueType = innerType.getActualTypeArguments()[1];
+-
+-										for (int i = 0; i < array.size(); i++) {
+-											Object elem = array.get(i);
+-											if (elem instanceof TomlTable) {
+-												Map<Object, Object> map = tomlTableToMap((TomlTable) elem, keyType, valueType);
+-												list.add(map);
+-											}
+-										}
+-									} else if (innerRawType instanceof Class<?> && List.class.isAssignableFrom((Class<?>) innerRawType)) {
+-										Type elementType = innerType.getActualTypeArguments()[0];
+-
+-										for (int i = 0; i < array.size(); i++) {
+-											Object elem = array.get(i);
+-											if (elem instanceof TomlArray) {
+-												TomlArray innerArray = (TomlArray) elem;
+-												List<Object> innerList = new ArrayList<>();
+-
+-												for (int j = 0; j < innerArray.size(); j++) {
+-													Object innerElem = innerArray.get(j);
+-													Object converted = convertValue(innerElem, elementType);
+-													if (converted != null) {
+-														innerList.add(converted);
+-													}
+-												}
+-												list.add(innerList);
+-											}
+-										}
+-									}
+-								} else if (actualType instanceof Class<?>) {
+-									Class<?> itemType = (Class<?>) actualType;
+-
+-									for (int i = 0; i < array.size(); i++) {
+-										Object elem = array.get(i);
+-
+-										if (itemType.isAnnotationPresent(DeserializeToml.class) && elem instanceof TomlTable) {
+-											list.add(fromToml((TomlTable) elem, itemType));
+-										} else if (itemType == String.class) {
+-											list.add(elem.toString());
+-										} else if (itemType == Integer.class || itemType == int.class) {
+-											list.add(((Number) elem).intValue());
+-										} else if (itemType == Double.class || itemType == double.class) {
+-											list.add(((Number) elem).doubleValue());
+-										} else if (itemType == Boolean.class || itemType == boolean.class) {
+-											list.add(elem);
+-										} else {
+-											System.out.println("Advertencia: tipo de lista no soportado: " + itemType.getTypeName());
+-										}
+-									}
+-								}
+-
+-								field.set(obj, list);
+-							}
+-						}
+-					}
+-				}
+-			}
+-		}
+-
+-		return obj;
+-	}
+-
+-	private static Map<Object, Object> tomlTableToMap(TomlTable table, Type keyType, Type valueType) {
+-		Map<Object, Object> map = new HashMap<>();
+-
+-		for (String key : table.keySet()) {
+-			Object value = table.get(key);
+-
+-			Object convertedKey = convertValue(key, keyType);
+-			Object convertedValue = convertValue(value, valueType);
+-
+-			if (convertedKey != null && convertedValue != null) {
+-				map.put(convertedKey, convertedValue);
+-			}
+-		}
+-
+-		return map;
+-	}
+-
+-	private static Object convertValue(Object value, Type targetType) {
+-		if (value instanceof TomlTable) {
+-			if (targetType instanceof ParameterizedType) {
+-				ParameterizedType pt = (ParameterizedType) targetType;
+-				Type rawType = pt.getRawType();
+-				if (rawType instanceof Class<?> && Map.class.isAssignableFrom((Class<?>) rawType)) {
+-					Type keyType = pt.getActualTypeArguments()[0];
+-					Type valueType = pt.getActualTypeArguments()[1];
+-					return tomlTableToMap((TomlTable) value, keyType, valueType);
+-				}
+-			}
+-
+-			if (targetType instanceof Class<?> && Map.class.isAssignableFrom((Class<?>) targetType)) {
+-				return tomlTableToMap((TomlTable) value, String.class, Object.class);
+-			}
+-			if (targetType instanceof Class<?> && ((Class<?>) targetType).isAnnotationPresent(DeserializeToml.class)) {
+-				try {
+-					return fromToml((TomlTable) value, (Class<?>) targetType);
+-				} catch (Exception e) {
+-					System.out.println("Error deserializando objeto: " + e.getMessage());
+-					return null;
+-				}
+-			}
+-			if (targetType instanceof Class<?> && ((Class<?>) targetType) == Object.class) {
+-				return tomlTableToMap((TomlTable) value, String.class, Object.class);
+-			}
+-		}
+-
+-		if (targetType instanceof Class<?>) {
+-			Class<?> clazz = (Class<?>) targetType;
+-
+-			if (clazz == String.class) {
+-				return value.toString();
+-			} else if (clazz == Integer.class || clazz == int.class) {
+-				if (value instanceof Number) {
+-					return ((Number) value).intValue();
+-				}
+-			} else if (clazz == Long.class || clazz == long.class) {
+-				if (value instanceof Number) {
+-					return ((Number) value).longValue();
+-				}
+-			} else if (clazz == Double.class || clazz == double.class) {
+-				if (value instanceof Number) {
+-					return ((Number) value).doubleValue();
+-				}
+-			} else if (clazz == Boolean.class || clazz == boolean.class) {
+-				return value;
+-			} else if (clazz == Object.class) {
+-				return value;
+-			}
+-		}
+-
+-		return value;
+-	}
+-}
+Index: src/main/java/deus/btd/toml/AtomCompiler.java
+===================================================================
+diff --git a/src/main/java/deus/btd/toml/AtomCompiler.java b/src/main/java/deus/btd/toml/AtomCompiler.java
+deleted file mode 100644
+--- a/src/main/java/deus/btd/toml/AtomCompiler.java
++++ /dev/null
+@@ -1,245 +0,0 @@
+-package deus.btd.toml;
+-
+-import deus.btd.enums.BlockTypes;
+-import deus.btd.items.AtomItem;
+-import deus.btd.toml.types.CompiledAtom;
+-import deus.btd.toml.types.CompiledBlock;
+-import deus.btd.toml.types.CompiledItem;
+-import deus.btd.utils.EnumUtils;
+-import deus.btd.Main;
+-import deus.btd.blocks.AtomBlockLogic;
+-import net.minecraft.core.block.Block;
+-import net.minecraft.core.block.BlockLogic;
+-import net.minecraft.core.block.Blocks;
+-import net.minecraft.core.block.material.Material;
+-import net.minecraft.core.data.tag.Tag;
+-import net.minecraft.core.item.Item;
+-import net.minecraft.core.item.ItemFood;
+-import net.minecraft.core.item.material.ToolMaterial;
+-import net.minecraft.core.item.tool.*;
+-import net.minecraft.core.sound.BlockSound;
+-import net.minecraft.core.sound.BlockSounds;
+-import turniplabs.halplibe.helper.BlockBuilder;
+-
+-import java.util.ArrayList;
+-import java.util.Collections;
+-import java.util.List;
+-
+-import static deus.btd.Main.*;
+-import static deus.btd.toml.AtomLoader.formatAtomKey;
+-import static deus.btd.utils.ConfigManager.blockGoc;
+-import static deus.btd.utils.ConfigManager.itemGoc;
+-
+-public class AtomCompiler {
+-
+-	public static final int AtomFormatVersion = 2;
+-
+-	public static Item convertIntoItem(CompiledItem atom) {
+-		ToolMaterial materialObject = EnumUtils.TOOL_MATERIALS.getOrDefault(atom.data.material.toUpperCase(), ToolMaterial.wood);
+-
+-		// ! BUILDING
+-		String key = formatAtomKey(atom.meta.author, atom.data.name);
+-
+-
+-		Main.LOGGER.debug("Creating block '{}' with key '{}'.", atom.data.name, key);
+-
+-		Item item;
+-
+-		if (atom.tool != null) {
+-			switch (atom.tool.type.toUpperCase()) {
+-				case "AXE":
+-					item = new ItemToolAxe(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key), materialObject);
+-					break;
+-				case "SWORD":
+-					item = new ItemToolSword(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key), materialObject);
+-					break;
+-				case "PICKAXE":
+-					item = new ItemToolPickaxe(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key), materialObject);
+-					break;
+-				case "SHOVEL":
+-					item = new ItemToolShovel(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key), materialObject);
+-					break;
+-				case "SHEARS":
+-					item = new ItemToolShears(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key), materialObject);
+-					break;
+-				case "HOE":
+-					item = new ItemToolHoe(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key), materialObject);
+-					break;
+-				case "DEFAULT":
+-				default:
+-					item = new AtomItem(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key));
+-					break;
+-			}
+-		} else if (atom.food != null) {
+-			item = new ItemFood(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key), atom.food.healAmount, atom.food.ticksPerHeal, atom.food.favouriteWolfMeat, atom.data.maxStackSize);
+-		} else {
+-			item = new AtomItem(atom.lang.key, MOD_ID + ":item/" + atom.data.name + "/" + atom.data.name, itemGoc(key));
+-		}
+-
+-		if (atom.data.tags != null) {
+-			List<Tag<Item>> tags = new ArrayList<>();
+-			for (String tag : atom.data.tags) {
+-				Tag<Item> t = EnumUtils.ITEM_TAGS.get(tag);
+-				if (t != null) {
+-					tags.add(t);
+-				}
+-			}
+-			if (!tags.isEmpty()) {
+-				item.withTags(tags.toArray(new Tag[0]));
+-			}
+-		}
+-
+-		return item;
+-
+-	}
+-
+-	public static boolean isValidItemAtom(CompiledItem item) {
+-		if (item == null) {
+-			LOGGER.warn("Item atom is null. Skipping.");
+-			return false;
+-		}
+-
+-		String name = item.data.name;
+-		int formatVersion = item.meta.formatVersion;
+-
+-		if (formatVersion != AtomFormatVersion) {
+-			LOGGER.warn("Wrong format version {} != {} for item '{}'. Skipping.", formatVersion, AtomFormatVersion, name);
+-			return false;
+-		}
+-
+-		if (name == null) {
+-			LOGGER.warn("Encountered item atom without a name. Skipping.");
+-			return false;
+-		}
+-
+-		return true;
+-	}
+-
+-	public static boolean isValidBlockAtom(CompiledBlock block) {
+-		if (block == null) {
+-			LOGGER.warn("Block atom is null. Skipping.");
+-			return false;
+-		}
+-
+-		String name = block.data.name;
+-		int formatVersion = block.meta.formatVersion;
+-
+-		if (formatVersion != AtomFormatVersion) {
+-			LOGGER.warn("Wrong format version {} != {} for block '{}'. Skipping.", formatVersion, AtomFormatVersion, name);
+-			return false;
+-		}
+-
+-		if (name == null) {
+-			LOGGER.warn("Encountered block atom without a name. Skipping.");
+-			return false;
+-		}
+-
+-		return true;
+-	}
+-
+-
+-	public static Block<?> convertIntoBlocks(CompiledBlock atom) {
+-		Material materialObject = EnumUtils.MATERIALS.getOrDefault(
+-			atom.data.material.toUpperCase(),
+-			Material.wood
+-		);
+-
+-		BlockSound blockSoundObject = EnumUtils.BLOCK_SOUNDS.getOrDefault(
+-			atom.sounds.sound,
+-			BlockSounds.STONE
+-		);
+-
+-		BlockTypes blockType = BlockTypes.fromString(atom.logic != null ? atom.logic.type : null);
+-
+-		String key = formatAtomKey(atom.meta.author, atom.data.name);
+-
+-		Main.LOGGER.debug("Creating block '{}' with type '{}' and key '{}'.",
+-			atom.data.name, blockType.name(), key);
+-
+-		BlockBuilder builder = createBlockBuilder(atom, blockSoundObject);
+-
+-		addBlockTags(builder, atom.data.tags);
+-
+-		return builder.build(
+-			atom.lang.key,
+-			atom.data.name,
+-			blockGoc(key),
+-			block -> createBlockLogic(block, blockType, materialObject, atom)
+-		);
+-	}
+-
+-	private static BlockBuilder createBlockBuilder(CompiledBlock atom, BlockSound blockSound) {
+-		BlockBuilder builder = new BlockBuilder(atom.Namespace())
+-			.setBlockSound(blockSound)
+-			.setHardness((float) atom.data.hardness)
+-			.setSlipperiness((float) atom.data.slipperiness)
+-			.setResistance((float) atom.data.resistance);
+-
+-		if (atom.flammability != null) builder.setFlammability(atom.flammability.chanceToCatchFire, atom.flammability.changeToDegrade);
+-
+-		return builder;
+-	}
+-
+-	private static void addBlockTags(BlockBuilder builder, List<String> tags) {
+-		if (tags != null) {
+-			for (String tag : tags) {
+-				Tag<Block<?>> blockTag = EnumUtils.BLOCK_TAGS.get(tag);
+-				if (blockTag != null) {
+-					builder.addTags(blockTag);
+-				}
+-			}
+-		}
+-	}
+-
+-	private static BlockLogic createBlockLogic(
+-		Block<?> block,
+-		BlockTypes blockType,
+-		Material material,
+-		CompiledBlock atom
+-	) {
+-		block.withLightEmission((float) atom.data.luminance);
+-
+-		if (atom.data.unbreakable) {
+-			block.withSetUnbreakable();
+-		}
+-
+-		if (atom.data.immovable) {
+-			block.withImmovableFlagSet();
+-		}
+-
+-		Block<?> baseModel = null;
+-		if (atom.model != null && atom.model.baseBlockId >= 1) {
+-			baseModel = Blocks.getBlock(atom.model.baseBlockId);
+-		}
+-
+-		// TODO: FIX THIS SHIT
+-		BlockTypes.BlockContext ctx = BlockTypes.BlockContext.of(block)
+-			.withMaterial(material)
+-			.withModelBlock(baseModel);
+-
+-		if (atom.model != null && atom.model.rootKey != null && !atom.model.rootKey.trim().isEmpty()) {
+-			ctx.withRootKey(atom.model.rootKey);
+-		}
+-
+-		if (blockType == BlockTypes.DEFAULT) {
+-			return new AtomBlockLogic(
+-				block,
+-				material,
+-				atom.render == null || atom.render.isCubeShaped,
+-				atom.physics == null || atom.physics.isCollidable,
+-				atom.render == null || atom.render.isSolidRender,
+-				atom.events == null || atom.events.onBreak.dropItself,
+-				atom.events != null ? atom.events.onBreak.drops : Collections.emptyList()
+-			);
+-
+-		}
+-
+-		return blockType.createLogic(ctx);
+-	}
+-
+-
+-
+-
+-
+-}
+-
+Index: src/main/java/deus/btd/toml/types/fields/Lang.java
+===================================================================
+diff --git a/src/main/java/deus/btd/toml/types/fields/Lang.java b/src/main/java/deus/btd/toml/types/fields/Lang.java
+deleted file mode 100644
+--- a/src/main/java/deus/btd/toml/types/fields/Lang.java
++++ /dev/null
+@@ -1,19 +0,0 @@
+-package deus.btd.toml.types.fields;
+-
+-import deus.btd.annotations.DeserializeToml;
+-
+-import java.util.Map;
+-
+-@DeserializeToml
+-public class Lang { // [lang]
+-	public String key;
+-	public Map<String, LangLocale> locales; // [lang.en_US], [lang.es_ES] como Map
+-
+-
+-	@DeserializeToml
+-	public static class LangLocale {
+-		public String name;
+-		public String desc;
+-		public String tooltip;
+-	}
+-}
+Index: src/main/java/deus/btd/toml/types/fields/Recipe.java
+===================================================================
+diff --git a/src/main/java/deus/btd/toml/types/fields/Recipe.java b/src/main/java/deus/btd/toml/types/fields/Recipe.java
+deleted file mode 100644
+--- a/src/main/java/deus/btd/toml/types/fields/Recipe.java
++++ /dev/null
+@@ -1,29 +0,0 @@
+-package deus.btd.toml.types.fields;
+-
+-import deus.btd.annotations.DeserializeToml;
+-
+-import java.util.ArrayList;
+-import java.util.List;
+-import java.util.Map;
+-
+-@DeserializeToml
+-public class Recipe {
+-	public boolean enableWorkbench;
+-	public boolean enableFurnace;
+-	public Workbench workbench;
+-	public Furnace furnace;
+-
+-	@DeserializeToml
+-	public static class Workbench {
+-		public int outputAmount;
+-		public List<List<String>> pattern;
+-		public List<Map<String,Integer>> symbols = new ArrayList<>();
+-
+-	}
+-
+-	@DeserializeToml
+-	public static class Furnace {
+-		public int out_item_id;
+-		public int output_amount;
+-	}
+-}
+Index: src/main/java/deus/btd/toml/types/AtomType.java
+===================================================================
+diff --git a/src/main/java/deus/btd/toml/types/AtomType.java b/src/main/java/deus/btd/toml/types/AtomType.java
+deleted file mode 100644
+--- a/src/main/java/deus/btd/toml/types/AtomType.java
++++ /dev/null
+@@ -1,26 +0,0 @@
+-package deus.btd.toml.types;
+-
+-import java.util.Arrays;
+-
+-public enum AtomType {
+-	BLOCK(".block.atom"),
+-	ITEM(".item.atom"),
+-	PROJECT(".project.zip");
+-
+-	private final String suffix;
+-
+-	AtomType(String suffix) {
+-		this.suffix = suffix;
+-	}
+-
+-	public static AtomType fromFileName(String name) {
+-		return Arrays.stream(values())
+-			.filter(t -> name.endsWith(t.suffix))
+-			.findFirst()
+-			.orElseThrow(() -> new IllegalArgumentException("Tipo de atom desconocido: " + name));
+-	}
+-
+-	public String suffix() {
+-		return suffix;
+-	}
+-}
+Index: src/main/java/deus/btd/toml/types/CompiledAtom.java
+===================================================================
+diff --git a/src/main/java/deus/btd/toml/types/CompiledAtom.java b/src/main/java/deus/btd/toml/types/CompiledAtom.java
+deleted file mode 100644
+--- a/src/main/java/deus/btd/toml/types/CompiledAtom.java
++++ /dev/null
+@@ -1,24 +0,0 @@
+-package deus.btd.toml.types;
+-
+-import deus.btd.annotations.DeserializeToml;
+-import deus.btd.interfaces.IHasMeta;
+-import deus.btd.annotations.TomlIgnoreField;
+-
+-@DeserializeToml
+-public class CompiledAtom implements IHasMeta {
+-
+-	@TomlIgnoreField public String namespace;
+-
+-	public Meta meta;
+-
+-	@Override
+-	public Meta getMeta() {
+-		return meta;
+-	}
+-
+-	@DeserializeToml
+-	public static class Meta {
+-		public String author;
+-		public int formatVersion;
+-	}
+-}
+Index: src/main/java/deus/btd/toml/types/CompiledItem.java
+===================================================================
+diff --git a/src/main/java/deus/btd/toml/types/CompiledItem.java b/src/main/java/deus/btd/toml/types/CompiledItem.java
+deleted file mode 100644
+--- a/src/main/java/deus/btd/toml/types/CompiledItem.java
++++ /dev/null
+@@ -1,59 +0,0 @@
+-package deus.btd.toml.types;
+-
+-import deus.btd.annotations.DeserializeToml;
+-import deus.btd.interfaces.IHasLang;
+-import deus.btd.toml.types.fields.Lang;
+-import deus.btd.toml.types.fields.Recipe;
+-
+-import javax.annotation.Nullable;
+-import java.util.List;
+-
+-@DeserializeToml
+-public class CompiledItem extends CompiledAtom  implements IHasLang {
+-
+-	public Data data;
+-	public Textures textures;
+-
+-	@Nullable public Lang lang;
+-	@Nullable public Recipe recipe;
+-	@Nullable public Tool tool;
+-
+-	@Override
+-	public @Nullable Lang getLang() {
+-		return lang;
+-	}
+-
+-	@Override
+-	public String Namespace() {
+-		return this.namespace;
+-	}
+-
+-	@DeserializeToml
+-	public static class Data {
+-		public String name;
+-		public List<String> tags;
+-		public String material;
+-		public int maxStackSize;
+-	}
+-
+-	@DeserializeToml
+-	public static class Textures {
+-		public String texture;
+-	}
+-
+-	@DeserializeToml
+-	public static class Tool {
+-		public String type;
+-	}
+-
+-	// Optional
+-	@Nullable
+-	public Food food;
+-
+-	@DeserializeToml
+-	public static class Food {
+-		public int healAmount;
+-		public int ticksPerHeal;
+-		public boolean favouriteWolfMeat;
+-	}
+-}
+Index: src/main/java/deus/btd/toml/types/CompiledBlock.java
+===================================================================
+diff --git a/src/main/java/deus/btd/toml/types/CompiledBlock.java b/src/main/java/deus/btd/toml/types/CompiledBlock.java
+deleted file mode 100644
+--- a/src/main/java/deus/btd/toml/types/CompiledBlock.java
++++ /dev/null
+@@ -1,125 +0,0 @@
+-package deus.btd.toml.types;
+-
+-import deus.btd.annotations.DeserializeToml;
+-import deus.btd.interfaces.IHasLang;
+-import deus.btd.toml.types.fields.Lang;
+-import deus.btd.toml.types.fields.Recipe;
+-
+-import javax.annotation.Nullable;
+-import java.util.List;
+-
+-@DeserializeToml
+-public class CompiledBlock extends CompiledAtom implements IHasLang {
+-
+-	public Data data;
+-	public Textures textures;
+-	@Nullable
+-	public Sounds sounds;
+-	@Nullable
+-	public Flammability flammability;
+-	@Nullable
+-	public Render render;
+-	@Nullable
+-	public Physics physics;
+-	@Nullable public Events events;
+-	@Nullable public Recipe recipe;
+-	@Nullable public Model model;
+-	@Nullable public Logic logic;
+-	@Nullable public Lang lang;
+-
+-	@Override
+-	public @Nullable Lang getLang() {
+-		return lang;
+-	}
+-
+-	@Override
+-	public String Namespace() {
+-		return this.namespace;
+-	}
+-
+-	// ------------------- Inner classes -------------------
+-
+-	@DeserializeToml
+-	public static class Data {
+-		public String name;
+-		@Nullable
+-		public List<String> tags;
+-		public boolean immovable;
+-		public boolean unbreakable;
+-		public double resistance;
+-		public double slipperiness;
+-		public double hardness;
+-		public String material;
+-		public double luminance;
+-	}
+-
+-	@DeserializeToml
+-	public static class Model {
+-		public String type;
+-		public int baseBlockId; // Only Stairs
+-		@Nullable public String rootKey; // Only Chests
+-	}
+-
+-	@DeserializeToml
+-	public static class Logic {
+-		public String type;
+-	}
+-
+-	@DeserializeToml
+-	public static class Flammability {
+-		public int chanceToCatchFire;
+-		public int changeToDegrade;
+-	}
+-
+-	@DeserializeToml
+-	public static class Render {
+-		public boolean isCubeShaped;
+-		public boolean isSolidRender;
+-	}
+-
+-	@DeserializeToml
+-	public static class Sounds {
+-		public String sound;
+-	}
+-
+-	@DeserializeToml
+-	public static class Physics {
+-		public boolean isCollidable;
+-	}
+-
+-	@DeserializeToml
+-	public static class Textures {
+-		public Faces faces;
+-
+-		@DeserializeToml
+-		public static class Faces {
+-			public String top;
+-			public String bottom;
+-			public String north;
+-			public String south;
+-			public String west;
+-			public String east;
+-		}
+-	}
+-
+-	@DeserializeToml
+-	public static class Events {
+-		public BreakEvent onBreak;
+-
+-		@DeserializeToml
+-		public static class BreakEvent {
+-			public boolean dropItself;
+-			public List<Drops> drops;
+-
+-			@DeserializeToml
+-			public static class Drops {
+-				public int item;
+-				public String cause;
+-				public int chance;
+-			}
+-		}
+-	}
+-
+-
+-
+-}
+Index: src/main/java/deus/btd/toml/types/CompiledAtomProjectHeader.java
+===================================================================
+diff --git a/src/main/java/deus/btd/toml/types/CompiledAtomProjectHeader.java b/src/main/java/deus/btd/toml/types/CompiledAtomProjectHeader.java
+deleted file mode 100644
+--- a/src/main/java/deus/btd/toml/types/CompiledAtomProjectHeader.java
++++ /dev/null
+@@ -1,15 +0,0 @@
+-package deus.btd.toml.types;
+-
+-import deus.btd.annotations.DeserializeToml;
+-
+-@DeserializeToml
+-public class CompiledAtomProjectHeader extends CompiledAtom {
+-
+-	public Data data;
+-
+-	@DeserializeToml
+-	public static class Data {
+-		public String name;
+-	}
+-
+-}
+Index: src/main/java/deus/btd/toml/project/ProjectDataCache.java
+===================================================================
+diff --git a/src/main/java/deus/btd/toml/project/ProjectDataCache.java b/src/main/java/deus/btd/toml/project/ProjectDataCache.java
+deleted file mode 100644
+--- a/src/main/java/deus/btd/toml/project/ProjectDataCache.java
++++ /dev/null
+@@ -1,19 +0,0 @@
+-package deus.btd.toml.project;
+-
+-
+-import deus.btd.toml.types.AtomType;
+-
+-import java.util.List;
+-import java.util.Map;
+-
+-public class ProjectDataCache {
+-	public Map<AtomType, List<?>> ATOMS = null;
+-
+-	public void clear() {
+-		if (ATOMS != null) {
+-			ATOMS.clear();
+-			ATOMS = null;
+-		}
+-	}
+-
+-}
+Index: src/main/java/deus/btd/toml/project/ProjectProcessed.java
+===================================================================
+diff --git a/src/main/java/deus/btd/toml/project/ProjectProcessed.java b/src/main/java/deus/btd/toml/project/ProjectProcessed.java
+deleted file mode 100644
+--- a/src/main/java/deus/btd/toml/project/ProjectProcessed.java
++++ /dev/null
+@@ -1,56 +0,0 @@
+-package deus.btd.toml.project;
+-
+-import net.minecraft.core.block.Block;
+-import net.minecraft.core.item.Item;
+-
+-import java.util.*;
+-
+-public class ProjectProcessed {
+-	public final String name;
+-	public final ProjectResources resources;
+-	public final Map<String, Block<?>> blocks;
+-	public final Map<String, Item> items;
+-
+-	public ProjectProcessed(String name, ProjectResources resources, Map<String, Block<?>> blocks, Map<String, Item> items) {
+-		this.name = name;
+-		this.blocks = blocks;
+-		this.items = items;
+-		this.resources = resources;
+-	}
+-
+-	public String getName() {
+-		return name;
+-	}
+-
+-	public Map<String, Block<?>> getBlocks() {
+-		return blocks;
+-	}
+-
+-	public Map<String, Item> getItems() {
+-		return items;
+-	}
+-
+-	@Override
+-	public boolean equals(Object o) {
+-		if (this == o) return true;
+-		if (o == null || getClass() != o.getClass()) return false;
+-		ProjectProcessed that = (ProjectProcessed) o;
+-		return Objects.equals(name, that.name) &&
+-			Objects.equals(blocks, that.blocks) &&
+-			Objects.equals(items, that.items);
+-	}
+-
+-	@Override
+-	public int hashCode() {
+-		return Objects.hash(name, blocks, items);
+-	}
+-
+-	@Override
+-	public String toString() {
+-		return "ProjectProcessed{" +
+-			"name='" + name + '\'' +
+-			", blocks=" + blocks +
+-			", items=" + items +
+-			'}';
+-	}
+-}
+Index: src/main/java/deus/btd/toml/project/ProjectResources.java
+===================================================================
+diff --git a/src/main/java/deus/btd/toml/project/ProjectResources.java b/src/main/java/deus/btd/toml/project/ProjectResources.java
+deleted file mode 100644
+--- a/src/main/java/deus/btd/toml/project/ProjectResources.java
++++ /dev/null
+@@ -1,178 +0,0 @@
+-package deus.btd.toml.project;
+-
+-import deus.btd.mixin.AtlasStitcherAccessor;
+-import deus.btd.mixin.TexturePackCustomAccessor;
+-import deus.btd.toml.AtomCompiler;
+-import deus.btd.toml.AtomLoader;
+-import deus.btd.toml.types.AtomType;
+-import deus.btd.toml.types.CompiledAtomProjectHeader;
+-import deus.btd.toml.types.CompiledBlock;
+-import deus.btd.toml.types.CompiledItem;
+-import deus.btd.utils.ZipResources;
+-import net.minecraft.client.Minecraft;
+-import net.minecraft.client.render.texture.stitcher.TextureRegistry;
+-import net.minecraft.client.render.texturepack.TexturePackCustom;
+-import net.minecraft.core.util.collection.NamespaceID;
+-
+-import java.io.*;
+-import java.nio.file.FileSystems;
+-import java.nio.file.Files;
+-import java.nio.file.Path;
+-import java.util.*;
+-import java.util.stream.Stream;
+-import java.util.zip.ZipEntry;
+-import java.util.zip.ZipFile;
+-import java.util.zip.ZipOutputStream;
+-
+-import static deus.btd.Main.LOGGER;
+-import static deus.btd.Main.MOD_ID;
+-
+-public class ProjectResources implements Closeable {
+-
+-	private final ZipResources zipResources;
+-	protected boolean assets;
+-	protected boolean data;
+-	protected boolean recipes;
+-	protected boolean emptyData;
+-	protected ProjectDataCache cache;
+-	protected String name;
+-	protected CompiledAtomProjectHeader header;
+-	public TexturePackCustom texturesPack;
+-	private final Path originalZipPath;
+-
+-	public ProjectResources(Path projectPath) throws Exception {
+-		this.originalZipPath = projectPath;
+-		this.zipResources = new ZipResources(FileSystems.newFileSystem(projectPath, (ClassLoader) null)) {};
+-		assets = zipResources.existsFolder("/assets");
+-		recipes = zipResources.existsFolder("/recipes");
+-		data = zipResources.existsFolder("/data");
+-		emptyData = data && zipResources.isEmpty("/data");
+-		cache = new ProjectDataCache();
+-
+-		header = AtomLoader.loadAtomProjectHeader(zipResources.get("manifest.atom"));
+-		name = header.data.name;
+-
+-		cache.ATOMS = loadAtoms();
+-	}
+-
+-	public String getName() {
+-		return name;
+-	}
+-
+-	protected Map<String, String> getTextures(Path fpath) {
+-		Map<String, String> texturesMap = new HashMap<>();
+-
+-		try (Stream<Path> paths = Files.walk(fpath)) {
+-			paths
+-				.filter(Files::isRegularFile)
+-				.forEach(path -> {
+-					try {
+-						byte[] bytes = Files.readAllBytes(path);
+-						String encoded = Base64.getUrlEncoder().encodeToString(bytes);
+-						texturesMap.put(path.toString(), encoded);
+-					} catch (IOException e) {
+-						throw new UncheckedIOException(e);
+-					}
+-				});
+-		} catch (IOException | UncheckedIOException e) {
+-			return null;
+-		}
+-
+-		return texturesMap;
+-	}
+-
+-	public Map<AtomType, List<?>> getAtoms() {
+-		return cache.ATOMS;
+-	}
+-
+-	protected Map<AtomType, List<?>> loadAtoms() {
+-		Map<AtomType, List<?>> compiledAtoms = new HashMap<>();
+-		if (!data || emptyData) return compiledAtoms;
+-
+-		for (AtomType type : AtomType.values()) {
+-			compiledAtoms.put(type, new ArrayList<>());
+-		}
+-
+-		try (Stream<Path> paths = Files.walk(zipResources.get("/data"))) {
+-			paths
+-				.filter(Files::isRegularFile)
+-				.filter(p -> p.getFileName().toString().endsWith(".atom"))
+-				.forEach(atomFile -> {
+-					try {
+-						AtomLoader.processAtomFile(name, atomFile, compiledAtoms);
+-					} catch (Exception e) {
+-						LOGGER.error("Failed to load atom file: {}", atomFile, e);
+-					}
+-				});
+-		} catch (IOException | UncheckedIOException e) {
+-			LOGGER.error("Failed to walk data folder", e);
+-		}
+-
+-		return compiledAtoms;
+-	}
+-
+-	@Override
+-	public void close() throws IOException {
+-		zipResources.close();
+-	}
+-
+-
+-	// Don't ask about it...
+-	public void loadTextures() {
+-		if (!assets) return;
+-
+-		try {
+-			File tempZip = File.createTempFile(this.getName(), ".zip");
+-			tempZip.deleteOnExit();
+-
+-			try (ZipFile originalZip = new ZipFile(originalZipPath.toFile());
+-				 ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(tempZip))) {
+-
+-				Enumeration<? extends ZipEntry> entries = originalZip.entries();
+-				while (entries.hasMoreElements()) {
+-					ZipEntry entry = entries.nextElement();
+-
+-					if (entry.getName().startsWith("assets/")) {
+-						ZipEntry newEntry = new ZipEntry(entry.getName());
+-						zos.putNextEntry(newEntry);
+-
+-						try (InputStream is = originalZip.getInputStream(entry)) {
+-							byte[] buffer = new byte[4096];
+-							int len;
+-							while ((len = is.read(buffer)) > 0) {
+-								zos.write(buffer, 0, len);
+-							}
+-						}
+-
+-						zos.closeEntry();
+-					}
+-				}
+-			}
+-
+-			texturesPack = new TexturePackCustom(tempZip);
+-
+-			if (this.zipResources.exists("assets/pack.png")) {
+-				((TexturePackCustomAccessor)texturesPack).setThumbnailBuffer(this.zipResources.readImageSafe("assets/pack.png"));
+-			}
+-
+-			texturesPack.readZipFile();
+-			texturesPack.readTexturePackManifest();
+-			LOGGER.info("Loaded texturepack from atompack successfully");
+-
+-			Minecraft.getMinecraft().texturePackList.selectedPacks.add(texturesPack);
+-
+-		} catch (IOException e) {
+-			LOGGER.error("Failed to load texture pack", e);
+-		}
+-	}
+-
+-
+-	public void loadDatapack() {
+-		if (recipes) {
+-			AtomLoader.loadDatapack(getName(), this.zipResources);
+-
+-		}
+-
+-	}
+-
+-}

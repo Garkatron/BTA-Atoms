@@ -1,7 +1,7 @@
 package deus.btd.blocks;
 
 import deus.btd.Main;
-import deus.btd.toml.types.CompiledBlock;
+import deus.btd.pipeline.compile.types.CompiledBlock;
 import net.minecraft.core.block.Block;
 import net.minecraft.core.block.BlockLogic;
 import net.minecraft.core.block.entity.TileEntity;
