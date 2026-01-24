@@ -4,21 +4,22 @@ import com.b100.utils.StringUtils;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import deus.btd.Main;
+import deus.btd.mixin.TexturePackCustomAccessor;
 import deus.btd.pipeline.compile.types.AtomType;
 import deus.btd.pipeline.project.ProjectResources;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.render.texturepack.TexturePackCustom;
 import net.minecraft.core.data.DataLoader;
 import net.minecraft.core.data.registry.Registries;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
 
 import static deus.btd.Main.LOGGER;
 
@@ -103,7 +104,7 @@ public class AtomProjectLoader {
 		}
 	}
 
-	protected static Map<AtomType, List<?>> loadAtomsFromProject(ProjectResources project) {
+	public static Map<AtomType, List<?>> loadAtomsFromProject(ProjectResources project) {
 		Map<AtomType, List<?>> atoms = new EnumMap<>(AtomType.class);
 
 		for (AtomType type : AtomType.values()) {
@@ -132,5 +133,53 @@ public class AtomProjectLoader {
 		}
 
 		return atoms;
+	}
+
+	public static void loadTextures(ProjectResources project) {
+		if (!project.hasAssets()) return;
+
+		try {
+			File tempZip = File.createTempFile(project.name(), ".zip");
+			tempZip.deleteOnExit();
+
+			try (ZipFile originalZip = new ZipFile(project.originalZipPath.toFile());
+				 ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(tempZip.toPath()))) {
+
+				Enumeration<? extends ZipEntry> entries = originalZip.entries();
+				while (entries.hasMoreElements()) {
+					ZipEntry entry = entries.nextElement();
+
+					if (entry.getName().startsWith("assets/")) {
+						ZipEntry newEntry = new ZipEntry(entry.getName());
+						zos.putNextEntry(newEntry);
+
+						try (InputStream is = originalZip.getInputStream(entry)) {
+							byte[] buffer = new byte[4096];
+							int len;
+							while ((len = is.read(buffer)) > 0) {
+								zos.write(buffer, 0, len);
+							}
+						}
+
+						zos.closeEntry();
+					}
+				}
+			}
+
+			TexturePackCustom texturePackCustom = new TexturePackCustom(tempZip);
+
+			if (project.zip().exists("assets/pack.png")) {
+				((TexturePackCustomAccessor)texturePackCustom).setThumbnailBuffer(project.zip().readImageSafe("assets/pack.png"));
+			}
+
+			texturePackCustom.readZipFile();
+			texturePackCustom.readTexturePackManifest();
+			LOGGER.info("Loaded texturepack from atompack successfully");
+
+			Minecraft.getMinecraft().texturePackList.selectedPacks.add(texturePackCustom);
+
+		} catch (IOException e) {
+			LOGGER.error("Failed to load texture pack", e);
+		}
 	}
 }

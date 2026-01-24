@@ -39,7 +39,8 @@ public class ProjectProcessor {
 			project.name(),
 			project,
 			blocks,
-			items
+			items,
+			atoms
 		);
 	}
 

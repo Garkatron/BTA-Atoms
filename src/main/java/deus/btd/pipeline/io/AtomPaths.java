@@ -26,7 +26,7 @@ public final class AtomPaths {
 	public static void deletePreviousConfig() {
 		if (CONFIG.toFile().exists()) {
 			LOGGER.info("Deleting previous config.");
-			boolean result = AtomDataCache.AtomLoader.CONFIG_FILE_PATH.toFile().delete();
+			boolean result = AtomPaths.CONFIG.toFile().delete();
 			LOGGER.info("Deleted: {}", result);
 		}
 	}

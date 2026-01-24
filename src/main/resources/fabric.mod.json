@@ -27,11 +27,14 @@
 		"afterGameStart": [
 			"deus.btd.Main"
 		],
+		"language": [
+			"deus.btd.pipeline.registry.LanguageRegistry"
+		],
 		"recipesReady": [
-			"deus.btd.entry_points.Recipes"
+			"deus.btd.pipeline.registry.RecipesRegistry"
 		],
 		"initModels": [
-			"deus.btd.entry_points.Models"
+			"deus.btd.pipeline.registry.ModelsRegistry"
 		]
 	},
   "mixins": [

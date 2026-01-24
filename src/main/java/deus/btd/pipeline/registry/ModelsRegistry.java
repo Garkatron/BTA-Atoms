@@ -1,4 +1,4 @@
-package deus.btd.entry_points;
+package deus.btd.pipeline.registry;
 
 import deus.btd.Main;
 import deus.btd.enums.BlockTypes;
@@ -25,23 +25,24 @@ import java.util.Optional;
 
 import static deus.btd.Main.LOGGER;
 import static deus.btd.Main.MOD_ID;
+import static deus.btd.pipeline.registry.AtomProjectRegistry.PROJECTS;
 
-public class Models implements ModelEntrypoint {
+public class ModelsRegistry implements ModelEntrypoint {
 
 	@Override
 	public void initBlockModels(BlockModelDispatcher blockModelDispatcher) {
 		LOGGER.info("Initializing block models.");
 
 		List<CompiledBlock> allBlocks = new ArrayList<>();
-		for (ProjectProcessed project : Main.PROJECTS) {
-			List<CompiledBlock> projectBlocks = (List<CompiledBlock>) project.resources.getAtoms().get(AtomType.BLOCK);
+		for (ProjectProcessed project : PROJECTS) {
+			List<CompiledBlock> projectBlocks = (List<CompiledBlock>) project.atoms.get(AtomType.BLOCK);
 			if (projectBlocks != null) {
 				allBlocks.addAll(projectBlocks);
 			}
 		}
 
-		for (ProjectProcessed project : Main.PROJECTS) {
-			project.blocks.forEach((key, block) -> {
+		for (ProjectProcessed project : PROJECTS) {
+			project.blocks().forEach((key, block) -> {
 				Optional<CompiledBlock> atomOpt = findAtomForBlock(block, allBlocks);
 
 				if (!atomOpt.isPresent()) return;
@@ -129,15 +130,15 @@ public class Models implements ModelEntrypoint {
 		LOGGER.info("Initializing item models.");
 
 		List<CompiledItem> allItems = new ArrayList<>();
-		for (ProjectProcessed project : Main.PROJECTS) {
-			List<CompiledItem> projectItems = (List<CompiledItem>) project.resources.getAtoms().get(AtomType.ITEM);
+		for (ProjectProcessed project : PROJECTS) {
+			List<CompiledItem> projectItems = (List<CompiledItem>) project.atoms.get(AtomType.ITEM);
 			if (projectItems != null) {
 				allItems.addAll(projectItems);
 			}
 		}
 
-		for (ProjectProcessed project : Main.PROJECTS) {
-			project.items.forEach((key, item) -> {
+		for (ProjectProcessed project : PROJECTS) {
+			project.items().forEach((key, item) -> {
 				Optional<CompiledItem> atomOpt = allItems.stream()
 					.filter(a -> {
 						String name = a.data.name;

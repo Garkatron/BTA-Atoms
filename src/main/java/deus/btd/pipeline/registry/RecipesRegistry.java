@@ -1,10 +1,11 @@
-package deus.btd.entry_points;
+package deus.btd.pipeline.registry;
 
 import deus.btd.Main;
 import deus.btd.pipeline.project.ProjectProcessed;
 import deus.btd.pipeline.compile.types.AtomType;
 import deus.btd.pipeline.compile.types.CompiledBlock;
 import deus.btd.pipeline.compile.types.CompiledItem;
+import deus.btd.pipeline.util.AtomConstants;
 import net.minecraft.core.block.Blocks;
 import net.minecraft.core.data.registry.Registries;
 import net.minecraft.core.data.registry.recipe.RecipeNamespace;
@@ -20,12 +21,13 @@ import java.util.List;
 
 import static deus.btd.Main.LOGGER;
 import static deus.btd.Main.MOD_ID;
-import static deus.btd.pipeline.project.AtomDataCache.AtomLoader.formatAtomKey;
+import static deus.btd.pipeline.io.AtomTomlUtils.formatAtomKey;
+import static deus.btd.pipeline.registry.AtomProjectRegistry.PROJECTS;
 import static deus.btd.utils.ConfigManager.blockGoc;
 import static deus.btd.utils.ConfigManager.itemGoc;
 
 
-public class Recipes implements RecipeEntrypoint {
+public class RecipesRegistry implements RecipeEntrypoint {
 
 	public static final RecipeNamespace ATOMS_RECIPE_NAMESPACE = new RecipeNamespace();
 
@@ -38,13 +40,13 @@ public class Recipes implements RecipeEntrypoint {
 	@Override
 	public void onRecipesReady() {
 		LOGGER.info("Creating recipes.");
-		for (ProjectProcessed project : Main.PROJECTS) {
-			List<CompiledBlock> blocks = (List<CompiledBlock>) project.resources.getAtoms().get(AtomType.BLOCK);
+		for (ProjectProcessed project : PROJECTS) {
+			List<CompiledBlock> blocks = (List<CompiledBlock>) project.atoms.get(AtomType.BLOCK);
 			if (blocks != null && !blocks.isEmpty()) {
 				createBlockRecipes(blocks);
 			}
 
-			List<CompiledItem> items = (List<CompiledItem>) project.resources.getAtoms().get(AtomType.ITEM);
+			List<CompiledItem> items = (List<CompiledItem>) project.atoms.get(AtomType.ITEM);
 			if (items != null && !items.isEmpty()) {
 				createItemRecipes(items);
 			}
@@ -57,7 +59,7 @@ public class Recipes implements RecipeEntrypoint {
 
 	public void createBlockRecipes(List<CompiledBlock> atoms) {
 		for (CompiledBlock atom : atoms) {
-			if (atom.meta.formatVersion != AtomCompiler.AtomFormatVersion) {
+			if (atom.meta.formatVersion != AtomConstants.FORMAT_VERSION) {
 				Main.LOGGER.warn("Wrong format version for block '{}' v{}.", atom.data.name, atom.meta.formatVersion);
 				continue;
 			}
@@ -92,7 +94,7 @@ public class Recipes implements RecipeEntrypoint {
 
 	public void createItemRecipes(List<CompiledItem> atoms) {
 		for (CompiledItem atom : atoms) {
-			if (atom.meta.formatVersion != AtomCompiler.AtomFormatVersion) {
+			if (atom.meta.formatVersion != AtomConstants.FORMAT_VERSION) {
 				Main.LOGGER.warn("Wrong format version for item '{}'.", atom.data.name);
 				continue;
 			}

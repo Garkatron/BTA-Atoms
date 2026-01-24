@@ -1,5 +1,8 @@
 package deus.btd.pipeline.io;
 
+import deus.btd.pipeline.build.BlockFactory;
+import deus.btd.pipeline.build.ItemFactory;
+import deus.btd.pipeline.compile.BlockCompiler;
 import deus.btd.pipeline.compile.ItemCompiler;
 import deus.btd.pipeline.compile.types.*;
 import deus.btd.utils.ConfigManager;
@@ -77,10 +80,6 @@ public class AtomTomlLoader {
 	}
 
 
-
-
-
-
 	public static List<Block<?>> loadAtomBlocks(List<CompiledBlock> compiledBlocks) {
 		System.out.println(compiledBlocks.get(0).data);
 		List<Block<?>> blocks = new ArrayList<>();
@@ -106,8 +105,8 @@ public class AtomTomlLoader {
 
 
 			for (CompiledBlock atom : compiledBlocks) {
-				if (!AtomCompiler.isValidBlockAtom(atom)) continue;
-				blocks.add(AtomCompiler.convertIntoBlocks(atom));
+				if (!BlockCompiler.validate(atom)) continue;
+				blocks.add(BlockFactory.build(atom));
 			}
 
 			LOGGER.info("Atom blocks successfully created: {}", blocks.size());
@@ -147,7 +146,7 @@ public class AtomTomlLoader {
 
 			for (CompiledItem atom : compiledItems) {
 				if (!ItemCompiler.validate(atom)) continue;
-				items.add(ItemCompiler.build(atom));
+				items.add(ItemFactory.build(atom));
 			}
 
 			LOGGER.info("Atom blocks successfully created: {}", blocks.size());
