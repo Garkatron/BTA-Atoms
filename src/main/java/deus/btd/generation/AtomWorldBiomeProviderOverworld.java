@@ -7,6 +7,7 @@ import net.minecraft.core.world.biome.Biome;
 import net.minecraft.core.world.biome.provider.BiomeProvider;
 import net.minecraft.core.world.biome.data.BiomeRange;
 import net.minecraft.core.world.biome.data.BiomeRangeMap;
+import net.minecraft.core.world.biome.provider.BiomeProviderOverworld;
 import net.minecraft.core.world.noise.PerlinSimplexNoise;
 import net.minecraft.core.world.type.WorldType;
 import net.minecraft.core.util.helper.MathHelper;
@@ -17,39 +18,82 @@ import java.util.Set;
 
 public class AtomWorldBiomeProviderOverworld extends BiomeProvider {
 	private final BiomeRangeMap brm = new BiomeRangeMap();
-	private final PerlinSimplexNoise temperatureNoise;
-	private final PerlinSimplexNoise humidityNoise;
-	private final PerlinSimplexNoise varietyNoise;
-	private final PerlinSimplexNoise fuzzinessNoise;
+	private PerlinSimplexNoise temperatureNoise;
+	private PerlinSimplexNoise humidityNoise;
+	private PerlinSimplexNoise varietyNoise;
+	private PerlinSimplexNoise fuzzinessNoise;
 
-	private double temperatureXScale = 0.0125;
-	private double temperatureZScale = 0.0125;
-	private double temperatureExponent = 0.25;
-	private double temperatureFuzzPercentage = 0.01;
-
-	private double humidityXScale = 0.025;
-	private double humidityZScale = 0.025;
-	private double humidityExponent = 0.3;
-	private double humidityFuzzPercentage = 0.01;
-
-	private double varietyXScale = 0.25;
-	private double varietyZScale = 0.25;
-	private double varietyExponent = 0.3;
-	private double varietyFuzzPercentage = 0.0;
-
-	private double fuzzinessXScale = 0.25;
-	private double fuzzinessZScale = 0.25;
-	private double fuzzinessExponent = 1.0;
+	private NoiseSettings temperature;
+	private NoiseSettings humidity;
+	private NoiseSettings variety;
+	private NoiseSettings fuzziness;
 
 	private final WorldType worldType;
 
+	private static final long TEMPERATURE_SEED_SALT = 9871L;
+	private static final long HUMIDITY_SEED_SALT    = 39811L;
+	private static final long VARIETY_SEED_SALT     = 132897987541L;
+	private static final long FUZZINESS_SEED_SALT   = 543321L;
+
+
 	public AtomWorldBiomeProviderOverworld(long seed, WorldType worldType) {
 		this.worldType = worldType;
-		this.temperatureNoise = new PerlinSimplexNoise(new Random(seed * 9871L), 4);
-		this.humidityNoise = new PerlinSimplexNoise(new Random(seed * 39811L), 4);
-		this.varietyNoise = new PerlinSimplexNoise(new Random(seed), 4);
-		this.fuzzinessNoise = new PerlinSimplexNoise(new Random(seed * 543321L), 2);
+
+		this.temperatureNoise =
+			new PerlinSimplexNoise(new Random(seed * TEMPERATURE_SEED_SALT), 4);
+		this.humidityNoise =
+			new PerlinSimplexNoise(new Random(seed * HUMIDITY_SEED_SALT), 4);
+		this.varietyNoise =
+			new PerlinSimplexNoise(new Random(seed * VARIETY_SEED_SALT), 4);
+		this.fuzzinessNoise =
+			new PerlinSimplexNoise(new Random(seed * FUZZINESS_SEED_SALT), 2);
+
+		this.temperature = new NoiseSettings(0.0125, 0.0125, 0.25, 0.01);
+		this.humidity    = new NoiseSettings(0.025,  0.025,  0.3,  0.01);
+		this.variety     = new NoiseSettings(0.25,   0.25,   0.3,  0.0);
+		this.fuzziness   = new NoiseSettings(0.25,   0.25,   1.0,  0.0);
 	}
+
+	public AtomWorldBiomeProviderOverworld withTemperature(NoiseSettings settings) {
+		this.temperature = settings;
+		return this;
+	}
+
+	public AtomWorldBiomeProviderOverworld withHumidity(NoiseSettings settings) {
+		this.humidity = settings;
+		return this;
+	}
+
+	public AtomWorldBiomeProviderOverworld withVariety(NoiseSettings settings) {
+		this.variety = settings;
+		return this;
+	}
+
+	public AtomWorldBiomeProviderOverworld withFuzziness(NoiseSettings settings) {
+		this.fuzziness = settings;
+		return this;
+	}
+	public void configureNoise(
+		PerlinSimplexNoise temp,
+		PerlinSimplexNoise hum,
+		PerlinSimplexNoise var,
+		PerlinSimplexNoise fuzz,
+		NoiseSettings tempSettings,
+		NoiseSettings humSettings,
+		NoiseSettings varSettings,
+		NoiseSettings fuzzSettings
+	) {
+		this.temperatureNoise = temp;
+		this.humidityNoise = hum;
+		this.varietyNoise = var;
+		this.fuzzinessNoise = fuzz;
+
+		this.temperature = tempSettings;
+		this.humidity = humSettings;
+		this.variety = varSettings;
+		this.fuzziness = fuzzSettings;
+	}
+
 
 	public void configure(Map<String, CompiledWorld.Range> ranges) {
 		if (ranges == null || ranges.isEmpty()) {
@@ -139,81 +183,103 @@ public class AtomWorldBiomeProviderOverworld extends BiomeProvider {
 	}
 
 	@Override
-	public double[] getTemperatures(double[] temperatures, int x, int z, int xSize, int zSize) {
-		if (temperatures == null || temperatures.length < xSize * zSize) {
-			temperatures = new double[xSize * zSize];
+	public double[] getTemperatures(double[] out, int x, int z, int xSize, int zSize) {
+		if (out == null || out.length < xSize * zSize) {
+			out = new double[xSize * zSize];
 		}
 
-		double[] tnResult = this.temperatureNoise.getValue(null, (double)x, (double)z,
-			xSize, zSize, this.temperatureXScale, this.temperatureZScale, this.temperatureExponent);
-		double[] fnResult = this.fuzzinessNoise.getValue(null, (double)x, (double)z,
-			xSize, zSize, this.fuzzinessXScale, this.fuzzinessZScale, this.fuzzinessExponent);
+		double[] tempNoise = temperatureNoise.getValue(
+			null, x, z, xSize, zSize,
+			temperature.xScale,
+			temperature.zScale,
+			temperature.exponent
+		);
 
-		for(int dx = 0; dx < xSize; ++dx) {
-			for(int dz = 0; dz < zSize; ++dz) {
-				double fuzziness = fnResult[dx * zSize + dz] * 1.1 + 0.5;
-				double fuzzPctg = this.temperatureFuzzPercentage;
-				double valPctg = 1.0 - fuzzPctg;
-				double temperature = (tnResult[dx * zSize + dz] * 0.15 + 0.7) * valPctg + fuzziness * fuzzPctg;
+		double[] fuzzNoise = fuzzinessNoise.getValue(
+			null, x, z, xSize, zSize,
+			fuzziness.xScale,
+			fuzziness.zScale,
+			fuzziness.exponent
+		);
 
-				temperature = MathHelper.clamp(temperature, 0.0, 1.0);
-				temperatures[dx * zSize + dz] = temperature;
-			}
+		for (int i = 0; i < out.length; i++) {
+			double fuzz = fuzzNoise[i] * 1.1 + 0.5;
+			double valPct = 1.0 - temperature.fuzzPercentage;
+
+			double t = (tempNoise[i] * 0.15 + 0.7) * valPct
+				+ fuzz * temperature.fuzzPercentage;
+
+			out[i] = MathHelper.clamp(t, 0.0, 1.0);
 		}
 
-		return temperatures;
+		return out;
 	}
 
 	@Override
-	public double[] getHumidities(double[] humidities, int x, int z, int xSize, int zSize) {
-		if (humidities == null || humidities.length < xSize * zSize) {
-			humidities = new double[xSize * zSize];
+	public double[] getHumidities(double[] out, int x, int z, int xSize, int zSize) {
+		if (out == null || out.length < xSize * zSize) {
+			out = new double[xSize * zSize];
 		}
 
-		double[] hnResult = this.humidityNoise.getValue(null, (double)x, (double)z,
-			xSize, zSize, this.humidityXScale, this.humidityZScale, this.humidityExponent);
-		double[] fnResult = this.fuzzinessNoise.getValue(null, (double)x, (double)z,
-			xSize, zSize, this.fuzzinessXScale, this.fuzzinessZScale, this.fuzzinessExponent);
+		double[] humNoise = humidityNoise.getValue(
+			null, x, z, xSize, zSize,
+			humidity.xScale,
+			humidity.zScale,
+			humidity.exponent
+		);
 
-		for(int dx = 0; dx < xSize; ++dx) {
-			for(int dz = 0; dz < zSize; ++dz) {
-				double fuzziness = fnResult[dx * zSize + dz] * 1.1 + 0.5;
-				double fuzzPctg = this.humidityFuzzPercentage;
-				double valPctg = 1.0 - fuzzPctg;
-				double humidity = (hnResult[dx * zSize + dz] * 0.15 + 0.5) * valPctg + fuzziness * fuzzPctg;
+		double[] fuzzNoise = fuzzinessNoise.getValue(
+			null, x, z, xSize, zSize,
+			fuzziness.xScale,
+			fuzziness.zScale,
+			fuzziness.exponent
+		);
 
-				humidity = MathHelper.clamp(humidity, 0.0, 1.0);
-				humidities[dx * zSize + dz] = humidity;
-			}
+		for (int i = 0; i < out.length; i++) {
+			double fuzz = fuzzNoise[i] * 1.1 + 0.5;
+			double valPct = 1.0 - humidity.fuzzPercentage;
+
+			double h = (humNoise[i] * 0.15 + 0.5) * valPct
+				+ fuzz * humidity.fuzzPercentage;
+
+			out[i] = MathHelper.clamp(h, 0.0, 1.0);
 		}
 
-		return humidities;
+		return out;
 	}
 
+
 	@Override
-	public double[] getVarieties(double[] varieties, int x, int z, int xSize, int zSize) {
-		if (varieties == null || varieties.length < xSize * zSize) {
-			varieties = new double[xSize * zSize];
+	public double[] getVarieties(double[] out, int x, int z, int xSize, int zSize) {
+		if (out == null || out.length < xSize * zSize) {
+			out = new double[xSize * zSize];
 		}
 
-		double[] vnResult = this.varietyNoise.getValue(null, (double)x, (double)z,
-			xSize, zSize, this.varietyXScale, this.varietyZScale, this.varietyExponent);
-		double[] fnResult = this.fuzzinessNoise.getValue(null, (double)x, (double)z,
-			xSize, zSize, this.fuzzinessXScale, this.fuzzinessZScale, this.fuzzinessExponent);
+		double[] varNoise = varietyNoise.getValue(
+			null, x, z, xSize, zSize,
+			variety.xScale,
+			variety.zScale,
+			variety.exponent
+		);
 
-		for(int dx = 0; dx < xSize; ++dx) {
-			for(int dz = 0; dz < zSize; ++dz) {
-				double fuzziness = fnResult[dx * zSize + dz] * 1.1 + 0.5;
-				double fuzzPctg = this.varietyFuzzPercentage;
-				double valPctg = 1.0 - fuzzPctg;
-				double variety = (vnResult[dx * zSize + dz] * 0.15 + 0.5) * valPctg + fuzziness * fuzzPctg;
+		double[] fuzzNoise = fuzzinessNoise.getValue(
+			null, x, z, xSize, zSize,
+			fuzziness.xScale,
+			fuzziness.zScale,
+			fuzziness.exponent
+		);
 
-				variety = MathHelper.clamp(variety, 0.0, 1.0);
-				varieties[dx * zSize + dz] = variety;
-			}
+		for (int i = 0; i < out.length; i++) {
+			double fuzz = fuzzNoise[i] * 1.1 + 0.5;
+			double valPct = 1.0 - variety.fuzzPercentage;
+
+			double v = (varNoise[i] * 0.15 + 0.5) * valPct
+				+ fuzz * variety.fuzzPercentage;
+
+			out[i] = MathHelper.clamp(v, 0.0, 1.0);
 		}
 
-		return varieties;
+		return out;
 	}
 
 	@Override

@@ -12,11 +12,31 @@ public class CompiledWorld extends CompiledAtom {
 	public Data data;
 	public Map<String, Range> ranges;
 	public Properties properties;
+	public Noises noises;
 
 
 	@DeserializeToml
 	public static class Data {
 		public String key;
+	}
+
+	@DeserializeToml
+	public static class Noises {
+		public Noise temperature;
+		public Noise humidity;
+		public Noise variety;
+		public Noise fuzziness;
+	}
+
+	@DeserializeToml
+	public static class Noise {
+		public double salt;
+		public double scaleX;
+		public double scaleY;
+		public double scaleZ;
+		public int levels;
+		public double lacunarity;
+		public double persistence;
 	}
 
 	@DeserializeToml
