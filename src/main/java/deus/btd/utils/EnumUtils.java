@@ -9,6 +9,7 @@ import net.minecraft.core.item.material.ToolMaterial;
 import net.minecraft.core.item.tag.ItemTags;
 import net.minecraft.core.sound.BlockSound;
 import net.minecraft.core.sound.BlockSounds;
+import net.minecraft.core.world.biome.Biome;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;

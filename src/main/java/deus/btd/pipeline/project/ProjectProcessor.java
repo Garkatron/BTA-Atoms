@@ -2,13 +2,12 @@ package deus.btd.pipeline.project;
 
 import deus.btd.Main;
 import deus.btd.generation.AtomBiome;
+import deus.btd.generation.AtomWorld;
 import deus.btd.pipeline.build.BiomeFactory;
 import deus.btd.pipeline.build.BlockFactory;
 import deus.btd.pipeline.build.ItemFactory;
-import deus.btd.pipeline.compile.types.AtomType;
-import deus.btd.pipeline.compile.types.CompiledBiome;
-import deus.btd.pipeline.compile.types.CompiledBlock;
-import deus.btd.pipeline.compile.types.CompiledItem;
+import deus.btd.pipeline.build.WorldFactory;
+import deus.btd.pipeline.compile.types.*;
 import deus.btd.pipeline.io.AtomProjectLoader;
 import deus.btd.pipeline.io.AtomTomlLoader;
 import deus.btd.pipeline.io.ZipResources;
@@ -32,22 +31,30 @@ import static net.minecraft.core.entity.EntityDispatcher.stringIdToClassMap;
 public class ProjectProcessor {
 
 	public static ProjectProcessed process(ProjectResources project) {
+		Main.LOGGER.info("Processing projects...");
 
 		stringIdToClassMap.forEach((k, v) -> {
 			System.out.println("K: " + k);
 		});
 
+
 		Map<AtomType, List<?>> atoms = AtomProjectLoader.loadAtomsFromProject(project);
 
+		Main.LOGGER.info("- Blocks");
 		Map<String, Block<?>> blocks =
 			BlockFactory.build((List<CompiledBlock>) atoms.get(AtomType.BLOCK));
 
+		Main.LOGGER.info("- Items");
 		Map<String, Item> items =
 			ItemFactory.build((List<CompiledItem>) atoms.get(AtomType.ITEM));
 
+		Main.LOGGER.info("- Biomes");
 		Map<String, AtomBiome> biomes =
 			BiomeFactory.build((List<CompiledBiome>) atoms.get(AtomType.BIOME));
 
+		Main.LOGGER.info("- Worlds");
+		Map<String, AtomWorld> worlds =
+			WorldFactory.build((List<CompiledWorld>) atoms.get(AtomType.WORLD));
 
 		return new ProjectProcessed(
 			project.name(),
@@ -55,6 +62,7 @@ public class ProjectProcessor {
 			blocks,
 			items,
 			biomes,
+			worlds,
 			atoms
 		);
 	}

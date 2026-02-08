@@ -125,7 +125,8 @@ public class AtomProjectLoader {
 							atoms
 						);
 					} catch (Exception e) {
-						Main.LOGGER.error("Failed loading atom for {}", p.toString());
+						Main.LOGGER.error("Failed loading atom for {}\n{}", p.toString(), e);
+
 					}
 				});
 		}  catch (Exception e) {

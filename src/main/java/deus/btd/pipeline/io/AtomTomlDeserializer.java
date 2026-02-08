@@ -150,6 +150,8 @@ public class AtomTomlDeserializer {
 											list.add(((Number) elem).doubleValue());
 										} else if (itemType == Boolean.class || itemType == boolean.class) {
 											list.add(elem);
+										} else if (itemType == Float.class || itemType == float.class) {
+												list.add(((Number) elem).floatValue());
 										} else {
 											System.out.println("Advertencia: tipo de lista no soportado: " + itemType.getTypeName());
 										}

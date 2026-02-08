@@ -59,6 +59,13 @@ public class AtomTomlLoader {
 					.add(biome);
 				break;
 			}
+			case WORLD: {
+				CompiledWorld world = AtomTomlDeserializer.fromToml(tomlResult, CompiledWorld.class);
+				world.namespace = name;
+				((List<CompiledWorld>) compiledAtoms.get(AtomType.WORLD))
+					.add(world);
+				break;
+			}
 		}
 	}
 

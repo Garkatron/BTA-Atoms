@@ -1,6 +1,7 @@
 package deus.btd.pipeline.project;
 
 import deus.btd.generation.AtomBiome;
+import deus.btd.generation.AtomWorld;
 import deus.btd.pipeline.compile.types.AtomType;
 import net.minecraft.core.block.Block;
 import net.minecraft.core.item.Item;
@@ -23,6 +24,7 @@ public final class ProjectProcessed {
 		Map<String, Block<?>> blocks,
 		Map<String, Item> items,
 		Map<String, AtomBiome> biomes,
+		Map<String, AtomWorld> worlds,
 		Map<AtomType, List<?>> atoms
 	) {
 		this.name = name;

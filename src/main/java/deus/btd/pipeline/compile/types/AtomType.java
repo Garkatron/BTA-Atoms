@@ -7,6 +7,7 @@ public enum AtomType {
 	ITEM(".item.atom"),
 	BIOME(".biome.atom"),
 	WEATHER(".wheather.atom"),
+	WORLD(".world.atom"),
 	PROJECT(".project.zip");
 
 	private final String suffix;
