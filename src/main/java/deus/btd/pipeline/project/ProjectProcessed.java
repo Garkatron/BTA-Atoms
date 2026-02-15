@@ -24,7 +24,6 @@ public final class ProjectProcessed {
 		Map<String, Block<?>> blocks,
 		Map<String, Item> items,
 		Map<String, AtomBiome> biomes,
-		Map<String, AtomWorld> worlds,
 		Map<AtomType, List<?>> atoms
 	) {
 		this.name = name;

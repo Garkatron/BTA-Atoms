@@ -53,8 +53,7 @@ public class ProjectProcessor {
 			BiomeFactory.build((List<CompiledBiome>) atoms.get(AtomType.BIOME));
 
 		Main.LOGGER.info("- Worlds");
-		Map<String, AtomWorld> worlds =
-			WorldFactory.build((List<CompiledWorld>) atoms.get(AtomType.WORLD));
+		WorldFactory.build((List<CompiledWorld>) atoms.get(AtomType.WORLD));
 
 		return new ProjectProcessed(
 			project.name(),
@@ -62,7 +61,6 @@ public class ProjectProcessor {
 			blocks,
 			items,
 			biomes,
-			worlds,
 			atoms
 		);
 	}
