@@ -1,5 +1,6 @@
 package deus.btd;
 
+import deus.btd.commands.BtdCommand;
 import deus.btd.interfaces.IHasLang;
 import deus.btd.interfaces.LanguageEntrypoint;
 import deus.btd.mixin.I18nAccessor;
@@ -19,6 +20,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.block.Block;
 import net.minecraft.core.lang.I18n;
 import net.minecraft.core.lang.Language;
+import net.minecraft.core.net.command.CommandManager;
 import net.minecraft.core.world.World;
 import net.minecraft.core.world.type.WorldType;
 import net.minecraft.core.world.type.WorldTypeGroups;
@@ -63,8 +65,10 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 
 		LOGGER.info("Processing projects.");
 		AtomPaths.deletePreviousConfig();
+
 		AtomProjectRegistry.addAll(ProjectProcessor.processProjects(AtomProjectLoader.loadProjects(AtomPaths.DATA)));
 		// WorldTypeGroups.GROUPS.add(new WorldTypeGroups.Group(OVERWORLD_DEFAULT));
+		CommandManager.registerCommand(new BtdCommand());
 
 	}
 

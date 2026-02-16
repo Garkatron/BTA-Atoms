@@ -4,6 +4,7 @@
   "package": "deus.btd.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "BlockAccessor",
     "I18nAccessor",
     "LanguageAccessor"
   ],
