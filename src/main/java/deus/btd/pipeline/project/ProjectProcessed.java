@@ -12,7 +12,6 @@ public final class ProjectProcessed {
 
 	private final String name;
 	private final ProjectResources resources;
-	private final Map<String, Block<?>> blocks;
 	private final Map<String, Item> items;
 	private final Map<String, AtomBiome> biomes;
 	public final Map<AtomType, List<?>> atoms;
@@ -21,14 +20,12 @@ public final class ProjectProcessed {
 	public ProjectProcessed(
 		String name,
 		ProjectResources resources,
-		Map<String, Block<?>> blocks,
 		Map<String, Item> items,
 		Map<String, AtomBiome> biomes,
 		Map<AtomType, List<?>> atoms
 	) {
 		this.name = name;
 		this.resources = resources;
-		this.blocks = new HashMap<>(blocks);
 		this.items = new HashMap<>(items);
 		this.biomes = biomes;
 		this.atoms = atoms;
@@ -37,7 +34,6 @@ public final class ProjectProcessed {
 
 	public String name() { return name; }
 	public ProjectResources resources() { return resources; }
-	public Map<String, Block<?>> blocks() { return blocks; }
 	public Map<String, Item> items() { return items; }
 
 	public Map<String, AtomBiome> getBiomes() {

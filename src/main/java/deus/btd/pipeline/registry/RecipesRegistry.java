@@ -39,6 +39,7 @@ public class RecipesRegistry implements RecipeEntrypoint {
 
 	@Override
 	public void onRecipesReady() {
+		/*
 		LOGGER.info("Creating recipes.");
 		for (ProjectProcessed project : PROJECTS) {
 			List<CompiledBlock> blocks = (List<CompiledBlock>) project.atoms.get(AtomType.BLOCK);
@@ -51,6 +52,8 @@ public class RecipesRegistry implements RecipeEntrypoint {
 				createItemRecipes(items);
 			}
 		}
+		*/
+
 	}
 
 	public static String formatRecipeKey(String author, String name, String type) {

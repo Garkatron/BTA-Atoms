@@ -1,6 +1,7 @@
 package deus.btd.pipeline.registry;
 
 import deus.btd.Main;
+import deus.btd.blocks.DynBlockModel;
 import deus.btd.enums.BlockTypes;
 import deus.btd.pipeline.project.ProjectProcessed;
 import deus.btd.pipeline.compile.types.AtomType;
@@ -23,8 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static deus.btd.Main.LOGGER;
-import static deus.btd.Main.MOD_ID;
+import static deus.btd.Main.*;
 import static deus.btd.pipeline.registry.AtomProjectRegistry.PROJECTS;
 
 public class ModelsRegistry implements ModelEntrypoint {
@@ -33,31 +33,25 @@ public class ModelsRegistry implements ModelEntrypoint {
 	public void initBlockModels(BlockModelDispatcher blockModelDispatcher) {
 		LOGGER.info("Initializing block models.");
 
-		List<CompiledBlock> allBlocks = new ArrayList<>();
-		for (ProjectProcessed project : PROJECTS) {
-			List<CompiledBlock> projectBlocks = (List<CompiledBlock>) project.atoms.get(AtomType.BLOCK);
-			if (projectBlocks != null) {
-				allBlocks.addAll(projectBlocks);
-			}
-		}
+		ModelHelper.setBlockModel(DYN_BLOCK, () -> new DynBlockModel(DYN_BLOCK));
+
+
+
 
 		for (ProjectProcessed project : PROJECTS) {
-			project.blocks().forEach((key, block) -> {
-				Optional<CompiledBlock> atomOpt = findAtomForBlock(block, allBlocks);
+			for (CompiledBlock atom : (List<CompiledBlock>) project.atoms.get(AtomType.BLOCK)) {
 
-				if (!atomOpt.isPresent()) return;
 
-				CompiledBlock atom = atomOpt.get();
 
 				if (atom.textures == null || atom.textures.faces == null) return;
 
-				BlockModelStandard<?> model = createBlockModel(block, atom);
+				BlockModelStandard<?> model = createBlockModel(DYN_BLOCK, atom);
 
 				applyTextures(model, atom);
 
-				BlockModelStandard<?> finalModel = model;
-				ModelHelper.setBlockModel(block, () -> finalModel);
-			});
+				atom.blockModel = model;
+				// ModelHelper.setBlockModel(block, () -> finalModel);
+			}
 		}
 	}
 

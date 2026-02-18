@@ -1,9 +1,11 @@
 package deus.btd.pipeline.compile.types;
 
 import deus.btd.annotations.DeserializeToml;
+import deus.btd.annotations.TomlIgnoreField;
 import deus.btd.interfaces.IHasLang;
 import deus.btd.pipeline.compile.types.fields.Lang;
 import deus.btd.pipeline.compile.types.fields.Recipe;
+import net.minecraft.client.render.block.model.BlockModel;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -31,6 +33,10 @@ public class CompiledBlock extends CompiledAtom implements IHasLang {
 	public @Nullable Lang getLang() {
 		return lang;
 	}
+
+	@TomlIgnoreField
+	public transient BlockModel blockModel;
+
 
 	@Override
 	public String Namespace() {

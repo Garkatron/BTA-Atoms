@@ -1,8 +1,11 @@
 package deus.btd;
 
+import com.mojang.nbt.tags.CompoundTag;
+import deus.btd.blocks.DynBlockLogic;
 import deus.btd.commands.BtdCommand;
 import deus.btd.interfaces.IHasLang;
 import deus.btd.interfaces.LanguageEntrypoint;
+import deus.btd.items.DynItemBlock;
 import deus.btd.mixin.I18nAccessor;
 import deus.btd.mixin.LanguageAccessor;
 import deus.btd.pipeline.io.AtomPaths;
@@ -18,6 +21,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.block.Block;
+import net.minecraft.core.item.ItemStack;
 import net.minecraft.core.lang.I18n;
 import net.minecraft.core.lang.Language;
 import net.minecraft.core.net.command.CommandManager;
@@ -28,6 +32,9 @@ import net.minecraft.core.world.type.WorldTypes;
 import net.minecraft.core.world.type.overworld.WorldTypeOverworld;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import turniplabs.halplibe.helper.BlockBuilder;
+import turniplabs.halplibe.helper.CreativeHelper;
+import turniplabs.halplibe.helper.ItemBuilder;
 import turniplabs.halplibe.util.GameStartEntrypoint;
 
 import java.io.IOException;
@@ -45,6 +52,9 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 	public static final List<Block<?>> blocks = new ArrayList<>();
 	// public static final WorldType OVERWORLD_DEFAULT = register("better_than_datapacks:overworld.atom", new WorldTypeOverworld(WorldTypeOverworld.defaultProperties("worldType.overworld.atom").bounds(0, 127, 64).portalBounds(0, 255)));
 
+	public static Block<DynBlockLogic> DYN_BLOCK = null;
+	public static DynItemBlock DYN_ITEM_BLOCK = null;
+
 	@Override
 	public void beforeGameStart() {
 
@@ -53,6 +63,16 @@ public class Main implements ModInitializer, GameStartEntrypoint {
 	@Override
 	public void onInitialize() {
 		LOGGER.info("Initialization started.");
+
+		DYN_BLOCK = new BlockBuilder(MOD_ID)
+			.build("dyn_block", 12999, DynBlockLogic::new);
+
+		DYN_ITEM_BLOCK = new DynItemBlock(DYN_BLOCK);
+		ItemStack itemStack = new ItemStack(DYN_ITEM_BLOCK, 1);
+		CompoundTag tag = new CompoundTag();
+		tag.putString("dynblocknamespace", "jade:jade_gold_decorated_0");
+		itemStack.setData(tag);
+		CreativeHelper.setPriority(itemStack,0);
 
 		try {
 			AtomPaths.createFolders();

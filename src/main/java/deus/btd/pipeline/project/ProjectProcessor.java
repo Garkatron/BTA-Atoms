@@ -11,6 +11,7 @@ import deus.btd.pipeline.compile.types.*;
 import deus.btd.pipeline.io.AtomProjectLoader;
 import deus.btd.pipeline.io.AtomTomlLoader;
 import deus.btd.pipeline.io.ZipResources;
+import deus.btd.pipeline.registry.AtomBlockRegistry;
 import net.minecraft.core.block.Block;
 import net.minecraft.core.item.Item;
 
@@ -41,8 +42,10 @@ public class ProjectProcessor {
 		Map<AtomType, List<?>> atoms = AtomProjectLoader.loadAtomsFromProject(project);
 
 		Main.LOGGER.info("- Blocks");
-		Map<String, Block<?>> blocks =
-			BlockFactory.build((List<CompiledBlock>) atoms.get(AtomType.BLOCK));
+		for (CompiledBlock compiledBlock : (List<CompiledBlock>) atoms.get(AtomType.BLOCK)) {
+			Main.LOGGER.info("block: {}", compiledBlock.namespace + compiledBlock.lang.key);
+			AtomBlockRegistry.add(compiledBlock.namespace + ":" + compiledBlock.lang.key, compiledBlock);
+		}
 
 		Main.LOGGER.info("- Items");
 		Map<String, Item> items =
@@ -58,7 +61,6 @@ public class ProjectProcessor {
 		return new ProjectProcessed(
 			project.name(),
 			project,
-			blocks,
 			items,
 			biomes,
 			atoms
